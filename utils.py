@@ -14,11 +14,6 @@ import torch
 
 
 class Data():
-    '''
-    we load huge datasets as two torch-loader: train-loader and test-loader, so as to train them in multi-batches.
-    While load other small or big datasets as
-    '''
-
     def __init__(self) -> None:
         self.datasets = DATASETS
         if torch.cuda.is_available():
