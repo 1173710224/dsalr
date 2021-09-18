@@ -43,12 +43,12 @@ class Dsa(Optimizer):
 
     def step(self, closure=None):
         self.lr_autograd()
-        print("alpha grad", self.lr_grad[OBSERVW][0][0])
+        # print("alpha grad", self.lr_grad[OBSERVW][0][0])
         for i in range(len(self.lr_matrix)):
             self.lr_matrix[i] = self.lr_matrix[i] - \
                 self.meta_lr * self.lr_grad[i]
-        print("alpha", self.lr_matrix[OBSERVW][0][0])
-        print("lr", torch.pow(10, self.lr_matrix[OBSERVW])[0][0])
+        # print("alpha", self.lr_matrix[OBSERVW][0][0])
+        # print("lr", torch.pow(2, self.lr_matrix[OBSERVW])[0][0])
         for i, param in enumerate(self.params):
             param.data -= torch.mul(param.grad *
                                     (1/(param.grad.abs() + EPSILON)), torch.pow(2, self.lr_matrix[i]))

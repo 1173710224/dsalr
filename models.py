@@ -62,12 +62,11 @@ class GLMlp(BaseMlp):
 
 
 class DeepConv(nn.Module):
-    def __init__(self, input_channel, ndim, nclass, h_params):
+    def __init__(self, input_channel, ndim, nclass):
         super(DeepConv, self).__init__()
 
         self.ndim = ndim
         self.nclass = nclass
-        self.h_params = h_params
 
         self.conv1_1 = Conv2d(in_channels=input_channel,
                               out_channels=4, kernel_size=5, bias=False, padding=2)
