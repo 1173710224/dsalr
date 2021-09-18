@@ -64,7 +64,6 @@ class BatchTrainer():
     def __init__(self, train_loader, test_loader, model, lr=0.001) -> None:
         self.train_loader = train_loader
         self.test_loader = test_loader
-        model = Mlp(4, 2)
         self.model = model
         if torch.cuda.is_available():
             self.model.cuda()
