@@ -64,7 +64,6 @@ class BatchTrainer():
     def __init__(self, train_loader, test_loader, model, lr=0.001) -> None:
         self.train_loader = train_loader
         self.test_loader = test_loader
-        model = Mlp(4, 2)
         self.model = model
         self.lr = lr
         pass
@@ -73,7 +72,7 @@ class BatchTrainer():
         self.optimizier = torch.optim.Adam(
             self.model.parameters(), lr=self.lr)
         self.model.train()
-        for i in range(self.epoch):
+        for i in range(EPOCHS):
             loss_sum = 0
             img_num = 0
             for imgs, label in self.train_loader:
@@ -90,6 +89,7 @@ class BatchTrainer():
                 self.optimizier.step()
                 loss_sum += loss.item() * len(imgs)
                 img_num += len(imgs)
+                # print(loss.item())
             avg_loss = loss_sum * 1.0/img_num
             print("Epoch~{}->{}".format(i+1, avg_loss))
         return
@@ -122,7 +122,11 @@ if __name__ == "__main__":
     # print(res)
 
     data = Data()
-    train_loader, test_loader = data.load_mnist()
+    train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
+    model = DeepConv(input_channel, ndim, nclass)
+    trainer = BatchTrainer(train_loader, test_loader, model)
+    trainer.train()
+    trainer.val()
 
     # for name, param in model.named_parameters():
     #     print(name, param)
