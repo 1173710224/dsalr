@@ -35,7 +35,7 @@ class Data():
         test_loader = DataLoader(dataset=test_dataset,
                                  batch_size=BATCHSIZE, shuffle=True,
                                  )
-        return train_loader, test_loader
+        return train_loader, test_loader, 32, 10
 
     def load_cifar100(self):
         data_root_path = "data/"
@@ -50,7 +50,7 @@ class Data():
         test_loader = DataLoader(dataset=test_dataset,
                                  batch_size=BATCHSIZE, shuffle=True,
                                  )
-        return train_loader, test_loader
+        return train_loader, test_loader, 32, 10
 
     def load_mnist(self):
         data_root_path = "data/"
@@ -65,7 +65,7 @@ class Data():
         test_loader = DataLoader(dataset=test_dataset,
                                  batch_size=BATCHSIZE, shuffle=True,
                                  )
-        return train_loader, test_loader
+        return train_loader, test_loader, 28, 10
 
     def load_svhn(self):
         data_root_path = "data/SVHN/"
@@ -78,7 +78,7 @@ class Data():
                                   num_workers=4)
         test_loader = DataLoader(dataset=test_dataset,
                                  batch_size=BATCHSIZE, shuffle=True)
-        return train_loader, test_loader
+        return train_loader, test_loader, 32, 10
 
     def load_wine(self):
         LabelIndex = 0
@@ -92,7 +92,7 @@ class Data():
             dataset = dataset.cuda()
         x_train, x_test, y_train, y_test = train_test_split(
             dataset[:, :-1], dataset[:, -1:].reshape(len(dataset)), test_size=0.2, random_state=0)
-        return (x_train, y_train), (x_test, y_test)
+        return (x_train, y_train), (x_test, y_test), 13, 3
 
     def load_car(self):
         LabelIndex = 6
@@ -106,7 +106,7 @@ class Data():
             dataset = dataset.cuda()
         x_train, x_test, y_train, y_test = train_test_split(
             dataset[:, :-1], dataset[:, -1:].reshape(len(dataset)), test_size=0.2, random_state=0)
-        return (x_train, y_train), (x_test, y_test)
+        return (x_train, y_train), (x_test, y_test), 21, 4
 
 
 if __name__ == "__main__":

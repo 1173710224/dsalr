@@ -32,7 +32,7 @@ class BaseMlp(nn.Module):
         return
 
 
-class MLP(BaseMlp):
+class Mlp(BaseMlp):
     def __init__(self, ndim, nclass):
         # super(MLP, self).__init__()
         BaseMlp.__init__(self, ndim, nclass)
@@ -47,18 +47,9 @@ class MLP(BaseMlp):
         return x
 
 
-class GLMLP(nn.Module):
+class GLMlp(BaseMlp):
     def __init__(self, ndim, nclass):
-        super(MLP, self).__init__()
-        self.ndim = ndim
-        self.nclass = nclass
-
-        self.dense1 = Linear(ndim, 64)
-        self.dense2 = Linear(64, 256)
-        self.dense3 = Linear(256, 128)
-        self.dense4 = Linear(128, 32)
-        self.dense5 = Linear(32, nclass)
-        self.prelu = PReLU()
+        BaseMlp.__init__(self, ndim, nclass)
     pass
 
     def forward(self, x):
@@ -68,14 +59,6 @@ class GLMLP(nn.Module):
         x = torch.sigmoid(self.dense4(x))
         x = self.dense5(x)
         return x
-
-    def reset_parameters(self):
-        self.dense1.reset_parameters()
-        self.dense2.reset_parameters()
-        self.dense3.reset_parameters()
-        self.dense4.reset_parameters()
-        self.dense5.reset_parameters()
-        return
 
 
 class DeepConv(nn.Module):
