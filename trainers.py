@@ -6,6 +6,7 @@ import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
 from models import My_loss
+import utils
 warnings.filterwarnings("ignore")
 
 
@@ -54,28 +55,7 @@ class Trainer():
         return self.acc, self.p, self.r, self.f1, self.loss
 
     def get_opt(self):
-        if self.opt == ADAM:
-            return torch.optim.Adam(
-                self.model.parameters(), lr=self.lr)
-        if self.opt == DSA:
-            return Dsa(self.model.parameters())
-        if self.opt == ADAMW:
-            return torch.optim.AdamW(self.model.parameters(), lr=self.lr)
-
-        if self.opt == ADAMAX:
-            return torch.optim.Adamax(self.model.parameters(), lr=self.lr)
-        if self.opt == ADAGRAD:
-            return torch.optim.Adagrad(self.model.parameters(), lr=self.lr)
-        if self.opt == ADADELTA:
-            return torch.optim.Adadelta(self.model.parameters(), lr=self.lr)
-
-        if self.opt == SGD:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr)
-        if self.opt == RMSPROP:
-            return torch.optim.RMSprop(self.model.parameters(), lr=self.lr)
-        if self.opt == MOMENTUM:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=P_MOMENTUM)
-        return None
+        return utils.get_opt(self.opt, self.model)
 
     def val(self):
         x, y = self.test_data
@@ -163,7 +143,8 @@ class BatchTrainer():
                 loss.backward()
                 loss_sum += loss.item()
             self.optimizier.step()
-            print("Epoch~{}->{}\nval:{}".format(i+1, loss_sum, self.val()), end=",")
+            print("Epoch~{}->{}\nval:{}".format(i +
+                  1, loss_sum, self.val()), end=",")
         return
 
     def val(self):
@@ -222,28 +203,7 @@ class BatchTrainer():
         return
 
     def get_opt(self):
-        if self.opt == ADAM:
-            return torch.optim.Adam(
-                self.model.parameters(), lr=self.lr)
-        if self.opt == DSA:
-            return Dsa(self.model.parameters())
-        if self.opt == ADAMW:
-            return torch.optim.AdamW(self.model.parameters(), lr=self.lr)
-
-        if self.opt == ADAMAX:
-            return torch.optim.Adamax(self.model.parameters(), lr=self.lr)
-        if self.opt == ADAGRAD:
-            return torch.optim.Adagrad(self.model.parameters(), lr=self.lr)
-        if self.opt == ADADELTA:
-            return torch.optim.Adadelta(self.model.parameters(), lr=self.lr)
-
-        if self.opt == SGD:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr)
-        if self.opt == RMSPROP:
-            return torch.optim.RMSprop(self.model.parameters(), lr=self.lr)
-        if self.opt == MOMENTUM:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=P_MOMENTUM)
-        return None
+        return utils.get_opt(self.opt, self.model)
 
 
 class Case_1_Trainer():
@@ -279,28 +239,7 @@ class Case_1_Trainer():
         return self.loss
 
     def get_opt(self):
-        if self.opt == ADAM:
-            return torch.optim.Adam(
-                self.model.parameters(), lr=self.lr)
-        if self.opt == DSA:
-            return Dsa(self.model.parameters())
-        if self.opt == ADAMW:
-            return torch.optim.AdamW(self.model.parameters(), lr=self.lr)
-
-        if self.opt == ADAMAX:
-            return torch.optim.Adamax(self.model.parameters(), lr=self.lr)
-        if self.opt == ADAGRAD:
-            return torch.optim.Adagrad(self.model.parameters(), lr=self.lr)
-        if self.opt == ADADELTA:
-            return torch.optim.Adadelta(self.model.parameters(), lr=self.lr)
-
-        if self.opt == SGD:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr)
-        if self.opt == RMSPROP:
-            return torch.optim.RMSprop(self.model.parameters(), lr=self.lr)
-        if self.opt == MOMENTUM:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=P_MOMENTUM)
-        return None
+        return utils.get_opt(self.opt, self.model)
 
 
 class Casee_2_Trainer():
@@ -337,28 +276,7 @@ class Casee_2_Trainer():
         return self.x1, self.x2
 
     def get_opt(self):
-        if self.opt == ADAM:
-            return torch.optim.Adam(
-                self.model.parameters(), lr=self.lr)
-        if self.opt == DSA:
-            return Dsa(self.model.parameters())
-        if self.opt == ADAMW:
-            return torch.optim.AdamW(self.model.parameters(), lr=self.lr)
-
-        if self.opt == ADAMAX:
-            return torch.optim.Adamax(self.model.parameters(), lr=self.lr)
-        if self.opt == ADAGRAD:
-            return torch.optim.Adagrad(self.model.parameters(), lr=self.lr)
-        if self.opt == ADADELTA:
-            return torch.optim.Adadelta(self.model.parameters(), lr=self.lr)
-
-        if self.opt == SGD:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr)
-        if self.opt == RMSPROP:
-            return torch.optim.RMSprop(self.model.parameters(), lr=self.lr)
-        if self.opt == MOMENTUM:
-            return torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=P_MOMENTUM)
-        return None
+        return utils.get_opt(self.opt, self.model)
 
 
 if __name__ == "__main__":

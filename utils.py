@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
 import torch
+from optim import Dsa
 
 
 class Data():
@@ -134,9 +135,36 @@ class Data():
             dataset[:, :-1], dataset[:, -1:].reshape(len(dataset)), test_size=0.2, random_state=0)
         return (x_train, y_train), (x_test, y_test), 112, 2
 
+
 def split_Data(X, Y):
     return train_test_split(
-            X, Y, test_size=0.2, random_state=0)
+        X, Y, test_size=0.2, random_state=0)
+
+
+def get_opt(opt, model):
+    if opt == ADAM:
+        return torch.optim.Adam(
+            model.parameters())
+    if opt == DSA:
+        return Dsa(model.parameters())
+    if opt == ADAMW:
+        return torch.optim.AdamW(model.parameters())
+
+    if opt == ADAMAX:
+        return torch.optim.Adamax(model.parameters())
+    if opt == ADAGRAD:
+        return torch.optim.Adagrad(model.parameters())
+    if opt == ADADELTA:
+        return torch.optim.Adadelta(model.parameters())
+
+    if opt == SGD:
+        return torch.optim.SGD(model.parameters(), lr=0.01)
+    if opt == RMSPROP:
+        return torch.optim.RMSprop(model.parameters())
+    if opt == MOMENTUM:
+        return torch.optim.SGD(model.parameters(), lr=0.01,momentum=P_MOMENTUM)
+    return None
+
 
 if __name__ == "__main__":
     pass
