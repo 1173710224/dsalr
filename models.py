@@ -5,6 +5,7 @@ from const import *
 from utils import Data
 import torch
 
+
 class BaseMlp(nn.Module):
     def __init__(self, ndim, nclass):
         super(BaseMlp, self).__init__()
@@ -26,17 +27,19 @@ class BaseMlp(nn.Module):
         self.dense5.reset_parameters()
         return
 
-class Case_1(nn.modules):
+
+class Case_1(nn.Module):
     def __init__(self):
-        super(BaseMlp, self).__init__()
+        super(Case_1, self).__init__()
         self.dense = Linear(4, 1, bias=False)
 
     def reset_parameters(self):
         self.dense.reset_parameters()
         return
-    
+
     def forward(self, x):
         return self.dense(x)
+
 
 class Mlp(BaseMlp):
     def __init__(self, ndim, nclass):
@@ -259,24 +262,28 @@ class Fmp(nn.Module):
 
 # todo waiting to be implemented
 
+
 class ResNet(nn.Module):
     def __init__(self):
         super(ResNet, self).__init__()
         pass
 
+
 class Case_2(nn.Module):
     def __init__(self):
-        super(BaseMlp, self).__init__()
+        super(Case_2, self).__init__()
 
     def forward(self, x):
         return 0.5*torch.square(x[0])+2*torch.square(x[1])
 
+
 class My_loss(nn.Module):
     def __init__(self):
-        super().__init__()   
-        
-    def forward(self, x):  
+        super(My_loss, self).__init__()
+
+    def forward(self, x):
         return 0.5*torch.square(x[0])+2*torch.square(x[1])
+
 
 if __name__ == "__main__":
     # m = nn.FractionalMaxPool2d(3, output_ratio=0.5)
