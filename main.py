@@ -1,6 +1,6 @@
 from const import *
 from trainers import *
-from models import Case_1, Case_2, Fmp, Mlp
+from models import Case_1, Case_2, DeepConv, Fmp, Mlp
 from utils import Data
 import pickle
 data = Data()
@@ -44,7 +44,7 @@ def exp2():
     for dataset in SMALL:
         train_data, test_data, ndim, nclass = loaders[dataset]
         for op in optimizers:
-            if op == DSA:
+            if not op == DSA:
                 continue
             best_accu, best_p, best_r, best_f1, best_loss = 0, 0, 0, 0, 0
             tot_accu, tot_p, tot_r, tot_f1, tot_loss = [], [], [], [], []
@@ -161,10 +161,39 @@ def exp3_case2():
     pass
 
 
+<<<<<<< HEAD
 if __name__ == "__main__":
     # exp2()
     # exp2_Many_Epochs()
     exp1()
     # exp3_case1()
     # exp3_case2()
+=======
+def exp1_1():
+    for dataset in BIG:
+        if not dataset == CIFAR10:
+            continue
+        train_loader, test_loader, input_channel, ndim, nclass = loaders[dataset]
+        for op in optimizers:
+            if not op == DSA:
+                continue
+            print(f"dataset:{dataset},optimizer:{op}")
+            model = DeepConv(input_channel, ndim, nclass)
+            trainer = BatchTrainer(train_loader, test_loader, model, opt=op)
+            # res = trainer.minibatch_train()
+            _, _, _, _, loss = trainer.minibatch_train()
+            with open("result/dnn/{}-{}".format(op, dataset), "wb") as f:
+                pickle.dump(loss, f)
+
+    return
+
+
+if __name__ == "__main__":
+    exp2()
+    # exp2_Many_Epochs()
+    # exp1()
+    # exp3_case1()
+    # exp3_case2()
+    # exp1_1()
+>>>>>>> c214b621a1f7a9482e3ec8b61ac8561eb0df7de5
     pass

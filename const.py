@@ -17,7 +17,7 @@ MLPDATASETS = DATASETS[4:]
 
 BATCHSIZE = 64
 NUMBATCH = 120
-EPOCHS = 30
+EPOCHS = 300
 EPOCHSDENSE = 100
 METALR = 0.01
 EPSILON = 1e-20
@@ -33,18 +33,25 @@ ADADELTA = "adadelta"
 optimizers = [
     ADAM, ADAMW, ADAMAX,
     ADADELTA, ADAGRAD, SGD,
-    RMSPROP, DSA, MOMENTUM,]
+    RMSPROP, DSA, MOMENTUM, ]
 P_MOMENTUM = 0.9
 
 batch_size = {
-    CIFAR10:64, 
-    CIFAR100:32, 
-    MNIST:64,
-    SVHN:64, 
+    CIFAR10: 64,
+    CIFAR100: 32,
+    MNIST: 64,
+    SVHN: 64,
 }
 N = 3
 MAXEPOCHS = 1000
 CASE1 = "case1"
 CASE2 = "case2"
+
+NUMIMAGE = {
+    MNIST: 60000,
+    SVHN: 73257,
+    CIFAR10: 50000,
+    CIFAR100: 50000
+}
 if __name__ == "__main__":
     pass
