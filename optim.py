@@ -21,7 +21,7 @@ OBSERVW = 0
 
 
 class Dsa(Optimizer):
-    def __init__(self, params, lr_init=-13, meta_lr=0.0005) -> None:
+    def __init__(self, params, lr_init=-13, meta_lr=0.6) -> None:
         self.params = list(params)
         self.meta_lr = meta_lr
         self.last_w_grad = []
@@ -64,5 +64,6 @@ class Dsa(Optimizer):
         # print("alpha", self.lr_matrix[OBSERVW][0][0])
         # print("lr", torch.pow(2, self.lr_matrix[OBSERVW])[0][0])
         for i, param in enumerate(self.params):
-            param.data -= torch.mul(param.grad * (1/(param.grad.abs() + EPSILON)), torch.pow(2, self.lr_matrix[i]))
+            param.data -= torch.mul(param.grad * (1/(param.grad.abs() +
+                                    EPSILON)), torch.pow(2, self.lr_matrix[i]))
         return

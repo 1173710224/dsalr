@@ -5,8 +5,10 @@ from optim import Dsa
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
-from models import My_loss
+from models import My_loss, Mlp, DeepConv, Fmp
+from utils import Data
 import utils
+from time import time
 warnings.filterwarnings("ignore")
 
 
@@ -125,7 +127,7 @@ class BatchTrainer():
             self.acc.append(acc)
         return self.acc, self.p, self.r, self.f1, self.loss
 
-    def batch_train(self):
+    def batch_train(self, num_image):
         self.optimizier = self.get_opt()
         for i in range(EPOCHS):
             self.model.train()
@@ -139,12 +141,13 @@ class BatchTrainer():
                     imgs = imgs.cpu()
                     label = label.cpu()
                 preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label)/NUMBATCH
+                loss = F.cross_entropy(preds, label) * len(imgs) / num_image
                 loss.backward()
                 loss_sum += loss.item()
             self.optimizier.step()
             print("Epoch~{}->{}\nval:{}".format(i +
-                  1, loss_sum, self.val()), end=",")
+                  1, loss_sum, self.val()[0]), end=",")
+        print()
         return
 
     def val(self):
@@ -282,19 +285,24 @@ class Casee_2_Trainer():
 if __name__ == "__main__":
     # data = Data()
     # # train_data, test_data, ndim, nclass = data.load_car()
-    # # train_data, test_data, ndim, nclass = data.load_wine()
+    # train_data, test_data, ndim, nclass = data.load_wine()
     # # train_data, test_data, ndim, nclass = data.load_iris()
-    # train_data, test_data, ndim, nclass = data.load_agaricus_lepiota()
+    # # train_data, test_data, ndim, nclass = data.load_agaricus_lepiota()
     # model = Mlp(ndim, nclass)
-    # trainer = Trainer(train_data, test_data, model)
+    # trainer = Trainer(train_data, test_data, model, opt=DSA)
     # trainer.train()
     # res = trainer.val()
-    # print(res)
+    # # print(res)
 
-    # data = Data()
-    # # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
-    # train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
-    # # model = DeepConv(input_channel, ndim, nclass)
+    data = Data()
+    # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
+    train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
+    model = Fmp(input_channel, ndim, nclass)
+    # model = DeepConv(input_channel, ndim, nclass)
+    trainer = BatchTrainer(train_loader, test_loader, model)
+    st = time()
+    trainer.batch_train(num_image=NUMIMAGE[MNIST])
+    print(time() - st)
     # for lr_init in range(-14, -7):
     #     for meta_lr in [0.00005, 0.0001, 0.0008, 0.001, 0.005, 0.01]:
     #         st = time()
