@@ -1,7 +1,7 @@
 import torch
 from const import *
 import torch.nn.functional as F
-from optim import Dsa
+from optim import Dsa, FDsa, MiniFDsa, FDecreaseDsa, FDecreaseMiniDsa
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
@@ -54,6 +54,34 @@ class Trainer():
             self.r.append(r)
             self.f1.append(f1)
             self.acc.append(acc)
+        return self.acc, self.p, self.r, self.f1, self.loss
+
+    def fdsa_train(self):
+        # optimizer = FDecreaseDsa(self.model.parameters())
+        optimizer = FDsa(self.model.parameters())
+        for i in range(EPOCHSDENSE):
+            self.model.train()
+            x, y = self.x, self.y
+
+            preds = self.model(x)
+            loss = F.cross_entropy(preds, y.long())
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.w_step_1()
+
+            preds = self.model(x)
+            loss = F.cross_entropy(preds, y.long())
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.lr_step()
+
+            optimizer.w_step_2()
+
+            acc, p, r, f1 = self.val()
+            # print("Epoch~{}->loss:{}\nval:{},".format(i +
+            #       1, loss.item(), acc), end="")
+            print("Epoch~{}->loss:{}".format(i +
+                  1, loss.item()))
         return self.acc, self.p, self.r, self.f1, self.loss
 
     def get_opt(self):
@@ -205,6 +233,46 @@ class BatchTrainer():
                   avg_loss, self.val()), end=",")
         return
 
+    def fdsa_train(self):
+        self.optimizier = FDecreaseMiniDsa(self.model.parameters())
+        # self.optimizier = FDecreaseDsa(self.model.parameters())
+        # self.optimizier = MiniFDsa(self.model.parameters())
+        self.model.train()
+        for i in range(EPOCHS):
+            loss_sum = 0
+            img_num = 0
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                else:
+                    imgs = imgs.cpu()
+                    label = label.cpu()
+
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizier.zero_grad()
+                loss.backward()
+                self.optimizier.w_step_1()
+                # print(f"loss1:{loss.item()}", end=",")
+
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizier.zero_grad()
+                loss.backward()
+                self.optimizier.lr_step()
+                # print(f"loss2:{loss.item()}")
+
+                self.optimizier.w_step_2()
+
+                loss_sum += loss.item() * len(imgs)
+                img_num += len(imgs)
+            avg_loss = loss_sum * 1.0/img_num
+            acc, p, r, f1 = self.val()
+            print("Epoch~{}->loss:{}\nval:{},".format(i +
+                  1, avg_loss, acc), end="")
+        return
+
     def get_opt(self):
         return utils.get_opt(self.opt, self.model)
 
@@ -289,19 +357,22 @@ if __name__ == "__main__":
     # # train_data, test_data, ndim, nclass = data.load_iris()
     # # train_data, test_data, ndim, nclass = data.load_agaricus_lepiota()
     # model = Mlp(ndim, nclass)
-    # trainer = Trainer(train_data, test_data, model, opt=DSA)
-    # trainer.train()
+    # trainer = Trainer(train_data, test_data, model, opt=ADAM)
+    # trainer.fdsa_train()
+    # # trainer.train()
     # res = trainer.val()
-    # # print(res)
+    # print(res)
 
     data = Data()
     # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
     train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
-    model = Fmp(input_channel, ndim, nclass)
-    # model = DeepConv(input_channel, ndim, nclass)
-    trainer = BatchTrainer(train_loader, test_loader, model)
+    # model = Fmp(input_channel, ndim, nclass)
+    model = DeepConv(input_channel, ndim, nclass)
+    trainer = BatchTrainer(train_loader, test_loader, model, opt=ADAMAX)
     st = time()
-    trainer.batch_train(num_image=NUMIMAGE[MNIST])
+    trainer.fdsa_train()
+    # trainer.minibatch_train()
+    # trainer.batch_train(num_image=NUMIMAGE[MNIST])
     print(time() - st)
     # for lr_init in range(-14, -7):
     #     for meta_lr in [0.00005, 0.0001, 0.0008, 0.001, 0.005, 0.01]:
@@ -311,5 +382,4 @@ if __name__ == "__main__":
     #         trainer = BatchTrainer(train_loader, test_loader, model)
     #         trainer.minibatch_train()
     #         print(f"time long: {time() - st}")
-
     pass

@@ -10,6 +10,7 @@
 #         break
 #     pass
 
+import numpy as np
 from utils import Data
 import torch
 from const import *
@@ -244,9 +245,13 @@ if __name__ == "__main__":
     # trainer.lr_train()
     # trainer.train()
 
-    x = torch.rand((2, 3)) - 0.5
-    print(x)
-    print(x.abs())
-    print(1/x * x.abs())
-    print(torch.pow(10, x))
+    # x = torch.rand((2, 3)) - 0.5
+    # print(x)
+    # print(x.abs())
+    # print(1/x * x.abs())
+    # print(torch.pow(10, x))
+
+    print(pow(2, -9+0.001))
+    print(pow(2, -9))
+    print(pow(2, -9-0.001))
     pass

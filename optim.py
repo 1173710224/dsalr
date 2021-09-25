@@ -21,7 +21,7 @@ OBSERVW = 0
 
 
 class Dsa(Optimizer):
-    def __init__(self, params, lr_init=-13, meta_lr=0.6) -> None:
+    def __init__(self, params, lr_init=-8, meta_lr=0.5) -> None:
         self.params = list(params)
         self.meta_lr = meta_lr
         self.last_w_grad = []
@@ -67,3 +67,169 @@ class Dsa(Optimizer):
             param.data -= torch.mul(param.grad * (1/(param.grad.abs() +
                                     EPSILON)), torch.pow(2, self.lr_matrix[i]))
         return
+
+
+class FDsa(Optimizer):
+    # 更正更新步骤
+    def __init__(self, params, lr_init=-9, meta_lr=0.6) -> None:
+        self.params = list(params)
+        self.meta_lr = meta_lr
+        self.last_w_grad = []
+        self.tmp_w_grad = None
+        self.lr_matrix = []
+        self.lr_grad = None
+        for param in self.params:
+            self.last_w_grad.append(torch.zeros(
+                param.size(), device=param.device))
+            self.lr_matrix.append(torch.ones(
+                param.size(), device=param.device) * lr_init)
+        super(FDsa, self).__init__(
+            self.params, defaults=dict(lr=lr_init, meta_lr=meta_lr))
+        pass
+
+    def w_step_1(self):
+        self.base_params = []
+        self.base_grads = []
+        for i, param in enumerate(self.params):
+            self.base_params.append(param.clone())
+            self.base_grads.append(param.grad.clone())
+            param.data -= torch.mul(self.d(param.grad), torch.pow(2, self.lr_matrix[i]))
+        return
+
+    def lr_step(self):
+        for i in range(len(self.lr_matrix)):
+            self.lr_matrix[i] += self.meta_lr * self.d(self.params[i].grad) * self.d(self.base_grads[i])
+        return
+
+    def w_step_2(self):
+        for i, param in enumerate(self.params):
+            param.data = self.base_params[i] - torch.mul(self.d(self.base_grads[i]), torch.pow(2, self.lr_matrix[i]))
+        return
+
+    def d(self, tensor):
+        return tensor * (1/(tensor.abs() + EPSILON))
+
+
+class MiniFDsa(Optimizer):
+    # 加入对历史信息的考量
+    def __init__(self, params, lr_init=-13, meta_lr=0.00001, gamma=0.9) -> None:
+        self.params = list(params)
+        self.meta_lr = meta_lr
+        self.gamma = gamma
+        self.lr_matrix = []
+        self.history_delta = []
+        self.lr_grad = None
+        for param in self.params:
+            self.lr_matrix.append(torch.ones(
+                param.size(), device=param.device) * lr_init)
+            self.history_delta.append(torch.zeros(
+                param.size(), device=param.device))
+        super(MiniFDsa, self).__init__(
+            self.params, defaults=dict(lr=lr_init, meta_lr=meta_lr, gamma=gamma))
+        pass
+
+    def w_step_1(self):
+        self.base_params = []
+        self.base_grads = []
+        for i, param in enumerate(self.params):
+            self.base_params.append(param.clone())
+            self.base_grads.append(param.grad.clone())
+            param.data -= torch.mul(self.d(param.grad), torch.pow(2, self.lr_matrix[i]))
+        return
+
+    def lr_step(self):
+        for i in range(len(self.lr_matrix)):
+            self.lr_matrix[i] += self.meta_lr * self.d(self.params[i].grad) * self.d(self.base_grads[i])
+        return
+
+    def w_step_2(self):
+        for i, param in enumerate(self.params):
+            self.history_delta[i] = self.gamma * self.history_delta[i] + (1 - self.gamma) * (- torch.mul(self.d(self.base_grads[i]), torch.pow(2, self.lr_matrix[i])))
+            param.data = self.base_params[i] + self.history_delta[i]
+        return
+
+    def d(self, tensor):
+        return tensor * (1/(tensor.abs() + EPSILON))
+
+
+class FDecreaseDsa(Optimizer):
+    # 加入慢增快减
+    def __init__(self, params, lr_init=-10, beta_1=0.1, beta_2=0.001) -> None:
+        self.params = list(params)
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.lr_matrix = []
+        self.lr_grad = None
+        for param in self.params:
+            self.lr_matrix.append(torch.ones(
+                param.size(), device=param.device) * lr_init)
+        super(FDecreaseDsa, self).__init__(
+            self.params, defaults=dict(lr=lr_init))
+        pass
+
+    def w_step_1(self):
+        self.base_params = []
+        self.base_grads = []
+        for i, param in enumerate(self.params):
+            self.base_params.append(param.clone())
+            self.base_grads.append(param.grad.clone())
+            param.data -= torch.mul(self.d(param.grad), torch.pow(2, self.lr_matrix[i]))
+        return
+
+    def lr_step(self):
+        for i in range(len(self.lr_matrix)):
+            delta = self.d(self.params[i].grad) * self.d(self.base_grads[i])
+            self.lr_matrix[i] += 1/2 * delta * (self.beta_1 + self.beta_2) + 1/2 * (self.beta_2 - self.beta_1)
+        return
+
+    def w_step_2(self):
+        for i, param in enumerate(self.params):
+            param.data = self.base_params[i] - torch.mul(self.d(self.base_grads[i]), torch.pow(2, self.lr_matrix[i]))
+        return
+
+    def d(self, tensor):
+        return tensor * (1/(tensor.abs() + EPSILON))
+
+
+class FDecreaseMiniDsa(Optimizer):
+    # 加入慢增快减
+    def __init__(self, params, lr_init=-10, beta_1=0.1, beta_2=0.001, gamma=0.9) -> None:
+        self.params = list(params)
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2        
+    
+        self.lr_matrix = []
+        self.history_delta = []
+        self.lr_grad = None
+        for param in self.params:
+            self.lr_matrix.append(torch.ones(
+                param.size(), device=param.device) * lr_init)
+            self.history_delta.append(torch.zeros(
+                param.size(), device=param.device))
+        super(FDecreaseMiniDsa, self).__init__(
+            self.params, defaults=dict(lr=lr_init))
+        pass
+
+    def w_step_1(self):
+        self.base_params = []
+        self.base_grads = []
+        for i, param in enumerate(self.params):
+            self.base_params.append(param.clone())
+            self.base_grads.append(param.grad.clone())
+            param.data -= torch.mul(self.d(param.grad), torch.pow(2, self.lr_matrix[i]))
+        return
+
+    def lr_step(self):
+        for i in range(len(self.lr_matrix)):
+            delta = self.d(self.params[i].grad) * self.d(self.base_grads[i])
+            self.lr_matrix[i] += 1/2 * delta * (self.beta_1 + self.beta_2) + 1/2 * (self.beta_2 - self.beta_1)
+        return
+
+    def w_step_2(self):
+        for i, param in enumerate(self.params):
+            self.history_delta[i] = self.gamma * self.history_delta[i] + (1 - self.gamma) * (- torch.mul(self.d(self.base_grads[i]), torch.pow(2, self.lr_matrix[i])))
+            param.data = self.base_params[i] + self.history_delta[i]
+        return
+
+    def d(self, tensor):
+        return tensor * (1/(tensor.abs() + EPSILON))
