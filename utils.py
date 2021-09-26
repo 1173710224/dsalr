@@ -6,7 +6,8 @@ from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
 import torch
-from optim import Dsa
+import pickle
+from optim import FDecreaseDsa
 
 
 class Data():
@@ -25,7 +26,7 @@ class Data():
         test_dataset = datasets.CIFAR10(root=data_root_path, train=False,
                                         transform=transforms.ToTensor(), download=True)
         train_loader = DataLoader(dataset=train_dataset,
-                                  batch_size=BATCHSIZE, shuffle=True,
+                                  batch_size=NAME2BATCHSIZE[CIFAR10], shuffle=True,
                                   num_workers=4,
                                   )
         test_loader = DataLoader(dataset=test_dataset,
@@ -40,7 +41,7 @@ class Data():
         test_dataset = datasets.CIFAR100(root=data_root_path, train=False,
                                          transform=transforms.ToTensor(), download=True)
         train_loader = DataLoader(dataset=train_dataset,
-                                  batch_size=BATCHSIZE, shuffle=True,
+                                  batch_size=NAME2BATCHSIZE[CIFAR100], shuffle=True,
                                   num_workers=4,
                                   )
         test_loader = DataLoader(dataset=test_dataset,
@@ -55,7 +56,7 @@ class Data():
         test_dataset = datasets.MNIST(root=data_root_path, train=False,
                                       transform=transforms.ToTensor(), download=True)
         train_loader = DataLoader(dataset=train_dataset,
-                                  batch_size=BATCHSIZE, shuffle=True,
+                                  batch_size=NAME2BATCHSIZE[MNIST], shuffle=True,
                                   num_workers=4,
                                   )
         test_loader = DataLoader(dataset=test_dataset,
@@ -70,7 +71,7 @@ class Data():
         test_dataset = datasets.SVHN(root=data_root_path, split="test",
                                      transform=transforms.ToTensor(), download=True)
         train_loader = DataLoader(dataset=train_dataset,
-                                  batch_size=BATCHSIZE, shuffle=True,
+                                  batch_size=NAME2BATCHSIZE[SVHN], shuffle=True,
                                   num_workers=4)
         test_loader = DataLoader(dataset=test_dataset,
                                  batch_size=BATCHSIZE, shuffle=True)
@@ -135,10 +136,24 @@ class Data():
             dataset[:, :-1], dataset[:, -1:].reshape(len(dataset)), test_size=0.2, random_state=0)
         return (x_train, y_train), (x_test, y_test), 112, 2
 
-
-def split_Data(X, Y):
-    return train_test_split(
-        X, Y, test_size=0.2, random_state=0)
+    def get(self, dataset):
+        if dataset == MNIST:
+            return self.load_mnist()
+        if dataset == SVHN:
+            return self.load_svhn()
+        if dataset == CIFAR10:
+            return self.load_cifar10()
+        if dataset == CIFAR100:
+            return self.load_cifar100()
+        if dataset == IRIS:
+            return self.load_iris()
+        if dataset == WINE:
+            return self.load_wine()
+        if dataset == CAR:
+            return self.load_car()
+        if dataset == AGARICUS:
+            return self.load_agaricus_lepiota()
+        return None
 
 
 def get_opt(opt, model):
@@ -146,7 +161,7 @@ def get_opt(opt, model):
         return torch.optim.Adam(
             model.parameters())
     if opt == DSA:
-        return Dsa(model.parameters())
+        return FDecreaseDsa(model.parameters())
     if opt == ADAMW:
         return torch.optim.AdamW(model.parameters())
 
@@ -162,7 +177,17 @@ def get_opt(opt, model):
     if opt == RMSPROP:
         return torch.optim.RMSprop(model.parameters())
     if opt == MOMENTUM:
-        return torch.optim.SGD(model.parameters(), lr=0.01,momentum=P_MOMENTUM)
+        return torch.optim.SGD(model.parameters(), lr=0.01, momentum=P_MOMENTUM)
+    return None
+
+
+def get_res(dataset, opt):
+    if dataset in BIG:
+        with open(f"result/big/fmp_{dataset}_{opt}") as f:
+            return pickle.load(f)
+    elif dataset in SMALL:
+        with open(f"result/small/mlp_{dataset}_{opt}") as f:
+            return pickle.load(f)
     return None
 
 

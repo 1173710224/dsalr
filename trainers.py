@@ -1,12 +1,14 @@
+import pickle
 import torch
+from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import Dsa, FDsa, MiniFDsa, FDecreaseDsa, FDecreaseMiniDsa, MixDsa
+from optim import FDecreaseDsa
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
-from models import My_loss, Mlp, DeepConv, Fmp
+from models import My_loss, Mlp, DeepConv, Fmp, Summor, Tracker
 from utils import Data
 import utils
 from time import time
@@ -14,153 +16,124 @@ warnings.filterwarnings("ignore")
 
 
 class Trainer():
-    def __init__(self, train_data, test_data, model, lr=0.001, opt="adam") -> None:
+    def __init__(self, train_data, test_data, model) -> None:
         self.x = train_data[0]
         self.y = train_data[1]
         self.test_data = test_data
         self.model = model
-        self.lr = lr
-        self.opt = opt
         if torch.cuda.is_available():
             self.model.cuda()
-            self.device = "cuda"
             self.x = self.x.cuda()
             self.y = self.y.cuda()
         else:
             self.model.cpu()
-            self.device = "cpu"
-        self.acc = []
-        self.loss = []
-        self.p = []
-        self.r = []
-        self.f1 = []
-        self.alpha = []
+        self.state_dict = {ACCU: [],
+                           RECALL: [],
+                           PRECISION: [],
+                           F1SCORE: [],
+                           LOSS: []}
         pass
 
-    def train(self):
-        optimizer = self.get_opt()
+    def train(self, opt=ADAM):
+        self.reset_metrics()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(opt, self.model)
         for i in range(EPOCHSDENSE):
             self.model.train()
-            x, y = self.x, self.y
-            preds = self.model(x)
-            loss = F.cross_entropy(preds, y.long())
+            preds = self.model(self.x)
+            loss = F.cross_entropy(preds, self.y.long())
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            acc, p, r, f1 = self.val()
+            accu = self.record_metrics(loss.item())
             print("Epoch~{}->loss:{}\nval:{},".format(i +
-                  1, loss.item(), acc), end="")
-            self.loss.append(loss.item())
-            self.p.append(p)
-            self.r.append(r)
-            self.f1.append(f1)
-            self.acc.append(acc)
-        return self.acc, self.p, self.r, self.f1, self.loss
+                  1, loss.item(), accu), end="")
+        return
 
     def fdsa_train(self):
-        # optimizer = FDecreaseDsa(self.model.parameters())
-        optimizer = FDsa(self.model.parameters())
+        self.reset_metrics()
+        self.model.reset_parameters()
+        optimizer = FDecreaseDsa(self.model.parameters())
         for i in range(EPOCHSDENSE):
             self.model.train()
-            x, y = self.x, self.y
 
-            preds = self.model(x)
-            loss = F.cross_entropy(preds, y.long())
+            preds = self.model(self.x)
+            loss = F.cross_entropy(preds, self.y.long())
             optimizer.zero_grad()
             loss.backward()
             optimizer.w_step_1()
 
-            preds = self.model(x)
-            loss = F.cross_entropy(preds, y.long())
+            preds = self.model(self.x)
+            loss = F.cross_entropy(preds, self.y.long())
             optimizer.zero_grad()
             loss.backward()
             optimizer.lr_step()
-
             optimizer.w_step_2()
 
-            acc, p, r, f1 = self.val()
-            # print("Epoch~{}->loss:{}\nval:{},".format(i +
-            #       1, loss.item(), acc), end="")
-            print("Epoch~{}->loss:{}".format(i +
-                  1, loss.item()))
-        return self.acc, self.p, self.r, self.f1, self.loss
-
-    def get_opt(self):
-        return utils.get_opt(self.opt, self.model)
+            accu = self.record_metrics()
+            print("Epoch~{}->loss:{}\nval:{},".format(i +
+                  1, loss.item(), accu), end="")
+        return
 
     def val(self):
-        x, y = self.test_data
         self.model.eval()
+        x, y = self.test_data
         preds = self.model(x)
-        Preds = preds.detach().cpu().numpy()
-        Preds = [np.argmax(Preds[i]) for i in range(len(preds))]
-        Y = y.detach().cpu().numpy()
-        p, r, f1, _ = metrics(Preds, Y)
+        preds = preds.detach().cpu().numpy()
+        preds = [np.argmax(preds[i]) for i in range(len(preds))]
+        p, r, f1, _ = metrics(preds, y.cpu().numpy())
         accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
         return accu.cpu().numpy(), p, r, f1
 
+    def record_metrics(self, loss):
+        accu, precision, recall, f1_score = self.val()
+        self.state_dict[ACCU].append(accu)
+        self.state_dict[PRECISION].append(precision)
+        self.state_dict[RECALL].append(recall)
+        self.state_dict[F1SCORE].append(f1_score)
+        self.state_dict[LOSS].append(loss)
+        return accu
+
+    def reset_metrics(self):
+        self.state_dict = {ACCU: [],
+                           RECALL: [],
+                           PRECISION: [],
+                           F1SCORE: [],
+                           LOSS: []}
+        return
+
+    def save_metrics(self, path=""):
+        with open(path, "wb") as f:
+            pickle.dump(self.state_dict, f)
+        return
+
 
 class BatchTrainer():
-    def __init__(self, train_loader, test_loader, model, lr=0.001, opt=ADAM) -> None:
+    def __init__(self, train_loader, test_loader, model) -> None:
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.model = model
         if torch.cuda.is_available():
             self.model.cuda()
-            self.device = "cuda"
         else:
             self.model.cpu()
-            self.device = "cpu"
-        self.lr = lr
-        self.opt = opt
-
-        self.acc = []
-        self.loss = []
-        self.p = []
-        self.r = []
-        self.f1 = []
-        self.alpha = []
+        self.state_dict = {ACCU: [],
+                           RECALL: [],
+                           PRECISION: [],
+                           F1SCORE: [],
+                           LOSS: []}
+        self.num_image = 0
+        for _, label in self.train_loader:
+            self.num_image += len(label)
         pass
 
-    def minibatch_train(self):
-        self.optimizier = self.get_opt()
-        self.model.train()
-        for i in range(EPOCHS):
-            loss_sum = 0
-            img_num = 0
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda()
-                    label = label.cuda()
-                else:
-                    imgs = imgs.cpu()
-                    label = label.cpu()
-                preds = self.model(imgs)
-                # print(preds[0])
-                loss = F.cross_entropy(preds, label)
-                # print(loss.item())
-                self.optimizier.zero_grad()
-                loss.backward()
-                self.optimizier.step()
-                loss_sum += loss.item() * len(imgs)
-                img_num += len(imgs)
-                # print(img_num)
-            avg_loss = loss_sum * 1.0/img_num
-            acc, p, r, f1 = self.val()
-            print("Epoch~{}->loss:{}\nval:{},".format(i +
-                  1, avg_loss, acc), end="")
-            self.loss.append(avg_loss)
-            self.p.append(p)
-            self.r.append(r)
-            self.f1.append(f1)
-            self.acc.append(acc)
-        return self.acc, self.p, self.r, self.f1, self.loss
+    def train(self, opt=ADAM):
+        self.record_metrics()
+        self.mode.reset_parameters()
 
-    def batch_train(self, num_image):
-        self.optimizier = self.get_opt()
+        optimizier = utils.get_opt(opt, self.model)
         for i in range(EPOCHS):
             self.model.train()
-            self.optimizier.zero_grad()
             loss_sum = 0
             for imgs, label in self.train_loader:
                 if torch.cuda.is_available():
@@ -170,20 +143,95 @@ class BatchTrainer():
                     imgs = imgs.cpu()
                     label = label.cpu()
                 preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label) * len(imgs) / num_image
+                loss = F.cross_entropy(preds, label)
+                optimizier.zero_grad()
                 loss.backward()
-                loss_sum += loss.item()
-            self.optimizier.step()
-            print("Epoch~{}->{}\nval:{}".format(i +
-                  1, loss_sum, self.val()[0]), end=",")
+                optimizier.step()
+                loss_sum += loss.item() * len(imgs)/self.num_image
+            accu = self.record_metrics(loss_sum)
+            print("Epoch~{}->{}\nval:{}".format(i+1,
+                  loss_sum, accu), end=",")
         print()
+        return
+
+    def fdsa_train(self):
+        self.reset_metrics()
+        self.mode.reset_parameters()
+
+        self.optimizier_opt = Adamax(self.model.parameters())
+        for i in range(EPOCHSTEP1):
+            self.unit_minibatch_train_opt(i)
+        print()
+        self.optimizier_opt = None
+        self.optimizier_dsa = FDecreaseDsa(self.model.parameters())
+        for i in range(EPOCHSTEP2):
+            self.unit_batch_train_dsa(i)
+        print()
+        return
+
+    def unit_minibatch_train_opt(self, epoch=0):
+        self.model.train()
+        loss_sum = 0
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            else:
+                imgs = imgs.cpu()
+                label = label.cpu()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label)
+            self.optimizier_opt.zero_grad()
+            loss.backward()
+            self.optimizier_opt.step()
+            loss_sum += loss.item() * len(imgs)/self.num_image
+        accu = self.record_metrics(loss_sum)
+        print("Minibatch~Epoch~{}->loss:{}\nval:{},".format(epoch +
+              1, loss_sum, accu), end="")
+        return
+
+    def unit_batch_train_dsa(self, epoch=0):
+        self.optimizier_dsa.zero_grad()
+        loss_sum = 0
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            else:
+                imgs = imgs.cpu()
+                label = label.cpu()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
+            loss.backward()
+            loss_sum += loss.item()
+        self.optimizier_dsa.w_step_1()
+
+        self.optimizier_dsa.zero_grad()
+        loss_sum = 0
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            else:
+                imgs = imgs.cpu()
+                label = label.cpu()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
+            loss.backward()
+            loss_sum += loss.item()
+        self.optimizier_dsa.lr_step()
+        self.optimizier_dsa.w_step_2()
+
+        accu = self.record_metrics(loss_sum)
+        print("Batch~Epoch~{}->loss:{}\nval:{},".format(epoch +
+              1, loss_sum, accu), end="")
         return
 
     def val(self):
         self.model.eval()
         ncorrect = 0
         nsample = 0
-        Preds = []
+        preds = []
         Y = []
         for imgs, label in self.test_loader:
             if torch.cuda.is_available():
@@ -194,324 +242,104 @@ class BatchTrainer():
                 label = label.cpu()
             preds = self.model(imgs)
             tmp = preds.detach().cpu().numpy()
-            Preds.extend([np.argmax(tmp[i]) for i in range(len(tmp))])
+            preds.extend([np.argmax(tmp[i]) for i in range(len(tmp))])
             Y.extend(label.detach().cpu().numpy())
             ncorrect += torch.sum(preds.max(1)[1].eq(label).double())
             nsample += len(label)
-        p, r, f1, _ = metrics(Preds, Y)
+        p, r, f1, _ = metrics(preds, Y)
         return (ncorrect/nsample).cpu().numpy(), p, r, f1
 
-    def train(self):
-        # self.optimizier = Dsa(
-        #     self.model.parameters(), lr_init, meta_lr)
-        # # self.optimizier = torch.optim.Adam(
-        # #     self.model.parameters(), lr=self.lr)
-        self.optimizier = self.get_opt()
-        self.model.train()
-        for i in range(EPOCHS):
-            loss_sum = 0
-            img_num = 0
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda()
-                    label = label.cuda()
-                else:
-                    imgs = imgs.cpu()
-                    label = label.cpu()
-                preds = self.model(imgs)
-                # print(preds[0])
-                loss = F.cross_entropy(preds, label)
-                # print(loss.item())
-                self.optimizier.zero_grad()
-                loss.backward()
-                self.optimizier.step()
-                loss_sum += loss.item() * len(imgs)
-                img_num += len(imgs)
-                # print(img_num)
-            avg_loss = loss_sum * 1.0/img_num
-            # print("Epoch~{}->{}".format(i+1, avg_loss))
-            print("Epoch~{}->{}\nval:{}".format(i+1,
-                  avg_loss, self.val()[0]), end=",")
+    def record_metrics(self, loss_sum):
+        accu, precision, recall, f1_score = self.val()
+        self.state_dict[ACCU].append(accu)
+        self.state_dict[PRECISION].append(precision)
+        self.state_dict[RECALL].append(recall)
+        self.state_dict[F1SCORE].append(f1_score)
+        self.state_dict[LOSS].append(loss_sum)
+        return accu
+
+    def save_metrics(self, path=""):
+        with open(path, "wb") as f:
+            pickle.dump(self.state_dict, f)
         return
 
-    def fdsa_train(self):
-        # self.optimizier = FDecreaseMiniDsa(self.model.parameters())
-        # self.optimizier = FDecreaseDsa(self.model.parameters())
-        self.optimizier = MiniFDsa(self.model.parameters())
-        self.model.train()
-        for i in range(EPOCHS):
-            loss_sum = 0
-            img_num = 0
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda()
-                    label = label.cuda()
-                else:
-                    imgs = imgs.cpu()
-                    label = label.cpu()
-
-                preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label)
-                self.optimizier.zero_grad()
-                loss.backward()
-                self.optimizier.w_step_1()
-                # print(f"loss1:{loss.item()}", end=",")
-
-                preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label)
-                self.optimizier.zero_grad()
-                loss.backward()
-                self.optimizier.lr_step()
-                # print(f"loss2:{loss.item()}")
-
-                self.optimizier.w_step_2()
-
-                loss_sum += loss.item() * len(imgs)
-                img_num += len(imgs)
-            avg_loss = loss_sum * 1.0/img_num
-            acc, p, r, f1 = self.val()
-            print("Epoch~{}->loss:{}\nval:{},".format(i +
-                  1, avg_loss, acc), end="")
+    def reset_metrics(self):
+        self.state_dict = {ACCU: [],
+                           RECALL: [],
+                           PRECISION: [],
+                           F1SCORE: [],
+                           LOSS: []}
         return
 
-    def fdsa_batch_train(self, num_image):
-        # self.optimizier = FDsa(self.model.parameters())
-        # self.optimizier = FDecreaseMiniDsa(self.model.parameters())
-        self.optimizier = FDecreaseDsa(self.model.parameters())
-        # self.optimizier = MiniFDsa(self.model.parameters())
-        self.model.train()
-        for i in range(EPOCHS):
-            loss_sum = 0
-            img_num = 0
-
-            self.optimizier.zero_grad()
-            loss_sum = 0
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda()
-                    label = label.cuda()
-                else:
-                    imgs = imgs.cpu()
-                    label = label.cpu()
-                preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label) * len(imgs) / num_image
-                loss.backward()
-                loss_sum += loss.item()
-            self.optimizier.w_step_1()
-
-            self.optimizier.zero_grad()
-            loss_sum = 0
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda()
-                    label = label.cuda()
-                else:
-                    imgs = imgs.cpu()
-                    label = label.cpu()
-                preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label) * len(imgs) / num_image
-                loss.backward()
-                loss_sum += loss.item()
-            self.optimizier.lr_step()
-            self.optimizier.w_step_2()
-
-            avg_loss = loss_sum
-            acc, p, r, f1 = self.val()
-            print("Epoch~{}->loss:{}\nval:{},".format(i +
-                  1, avg_loss, acc), end="")
+    def save_model(self, path="model/tmp"):
+        torch.save(self.model.state_dict(), path)
         return
 
-    def mix_train(self, num_image):
-        self.model.train()
-        self.num_image = num_image
-        # for i in range(EPOCHS):
-        # if True:
-        # if i % 4 == 0:
-
-        self.optimizier_adamax = Adamax(self.model.parameters())
-        for i in range(1):
-            self.mix_unit_minibatch_train_adamax(i)
-            # self.mix_unit_minibatch_train(i)
-        print()
-        # else:
-        self.optimizier_adamax = None
-        self.optimizier = MixDsa(self.model.parameters())
-        for i in range(1):
-            self.mix_unit_batch_train(i)
-        return
-
-    def mix_unit_batch_train(self, epoch=0):
-        self.optimizier.zero_grad()
-        loss_sum = 0
-        for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            else:
-                imgs = imgs.cpu()
-                label = label.cpu()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
-            loss.backward()
-            loss_sum += loss.item()
-        self.optimizier.batch_w_step_1()
-
-        self.optimizier.zero_grad()
-        loss_sum = 0
-        for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            else:
-                imgs = imgs.cpu()
-                label = label.cpu()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
-            loss.backward()
-            loss_sum += loss.item()
-        self.optimizier.batch_lr_step()
-        self.optimizier.batch_w_step_2()
-
-        avg_loss = loss_sum
-        acc, p, r, f1 = self.val()
-        print("Epoch~{}->loss:{}\nval:{},".format(epoch + 1, avg_loss, acc), end="")
-        return
-
-    def mix_unit_minibatch_train(self, epoch=0):
-        loss_sum = 0
-        for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            else:
-                imgs = imgs.cpu()
-                label = label.cpu()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label)
-            self.optimizier.zero_grad()
-            loss.backward()
-            self.optimizier.minibatch_w_step()
-            # self.optimizier.minibatch_w_step_1()
-
-            # preds = self.model(imgs)
-            # loss = F.cross_entropy(preds, label)
-            # self.optimizier.zero_grad()
-            # loss.backward()
-            # self.optimizier.minibatch_lr_step()
-            # self.optimizier.minibatch_w_step_2()
-
-            loss_sum += loss.item() * len(imgs)
-
-        acc, p, r, f1 = self.val()
-        print("Epoch~{}~mini->loss:{}\nval:{},".format(epoch + 1, loss_sum/self.num_image, acc), end="")
-        return
-
-    def mix_unit_minibatch_train_adamax(self, epoch=0):
-        self.model.train()
-        loss_sum = 0
-        for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            else:
-                imgs = imgs.cpu()
-                label = label.cpu()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label)
-            self.optimizier_adamax.zero_grad()
-            loss.backward()
-            self.optimizier_adamax.step()
-            loss_sum += loss.item() * len(imgs)
-        avg_loss = loss_sum * 1.0/self.num_image
-        acc, p, r, f1 = self.val()
-        print("Epoch~{}->loss:{}\nval:{},".format(epoch + 1, avg_loss, acc), end="")
-        return self.acc, self.p, self.r, self.f1, self.loss
-
-    def get_opt(self):
-        return utils.get_opt(self.opt, self.model)
-
-    def save(self, path="model/tmp"):
-        torch.save(self.model, path)
-        return
-
-    def load(self, path="model/tmp"):
-        model = torch.load(path)
-        # self.model.load_state_dict(state_dict)
-        self.model = model
+    def load_model(self, path="model/tmp"):
+        state_dict = torch.load(path)
+        self.model.load_state_dict(state_dict)
         return
 
 
-class Case_1_Trainer():
-    def __init__(self, train_data, test_data, model, lr=0.001, opt="adam") -> None:
-        self.x = train_data[0]
-        self.y = train_data[1]
-        self.test_data = test_data
-        self.model = model
-        self.lr = lr
-        self.opt = opt
+class SumTrainer():
+    def __init__(self) -> None:
+        self.data_num = 10000
+        torch.manual_seed(123)
+        self.x = torch.rand((self.data_num, 4))
+        self.y = torch.sum(self.x, dim=1)
+        self.model = Summor()
         if torch.cuda.is_available():
             self.model.cuda()
-            self.device = "cuda"
             self.x = self.x.cuda()
             self.y = self.y.cuda()
-        else:
-            self.model.cpu()
-            self.device = "cpu"
-        self.loss = []
         pass
 
-    def train(self):
-        optimizer = self.get_opt()
-        for _ in range(EPOCHSDENSE):
-            self.model.train()
-            x, y = self.x, self.y
-            preds = self.model(x)
-            loss = F.cross_entropy(preds, y.long())
+    def train(self, opt=ADAM):
+        self.loss = []
+        self.model.train()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(opt, self.model)
+        for _ in range(SUMEPOCH):
+            preds = self.model(self.x)
+            loss = F.mse_loss(preds, self.y)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             self.loss.append(loss.item())
-        return self.loss
+        with open(f"result/sum/{self.data_num}_{opt}", "wb") as f:
+            pickle.dump(self.loss, f)
+        return
 
-    def get_opt(self):
-        return utils.get_opt(self.opt, self.model)
+    def reset_data(self, num=10000):
+        self.data_num = num
+        torch.manual_seed(123)
+        self.x = torch.rand((self.data_num, 4))
+        self.y = torch.sum(self.x, dim=1)
+        return
 
 
-class Casee_2_Trainer():
-    def __init__(self, x, model, lr=0.001, opt="adam") -> None:
-        self.x = x
-        self.model = model
-        self.lr = lr
-        self.opt = opt
+class TrackTrainer():
+    def __init__(self,) -> None:
+        self.model = Tracker()
         if torch.cuda.is_available():
             self.model.cuda()
-            self.device = "cuda"
-            self.x = self.x.cuda()
-        else:
-            self.model.cpu()
-            self.device = "cpu"
-        self.x1 = []
-        self.x2 = []
         pass
 
-    def train(self):
-        optimizer = self.get_opt()
-        for _ in range(EPOCHSDENSE):
-            self.model.train()
-            x = self.x
-            preds = self.model(x)
-            loss = My_loss(preds)
+    def train(self, opt=ADAM):
+        self.tracks = []
+        self.model.train()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(opt, self.model)
+        for _ in range(TRACKEPOCH):
+            preds = self.model()
             optimizer.zero_grad()
-            loss.backward()
+            preds.backward()
             optimizer.step()
-            self.x = preds
-            Preds = preds.detach().cpu().numpy()
-            self.x1.append(Preds[0])
-            self.x2.append(Preds[1])
-        return self.x1, self.x2
-
-    def get_opt(self):
-        return utils.get_opt(self.opt, self.model)
+            self.tracks.append((self.model.w1.cpu().numpy(),
+                               self.model.w2.cpu().numpy()))
+        with open(f"result/track/{opt}", "wb") as f:
+            pickle.dump(self.tracks, f)
+        return
 
 
 if __name__ == "__main__":
