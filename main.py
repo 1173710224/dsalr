@@ -161,14 +161,6 @@ def exp3_case2():
     pass
 
 
-<<<<<<< HEAD
-if __name__ == "__main__":
-    # exp2()
-    # exp2_Many_Epochs()
-    exp1()
-    # exp3_case1()
-    # exp3_case2()
-=======
 def exp1_1():
     for dataset in BIG:
         if not dataset == CIFAR10:
@@ -195,5 +187,4 @@ if __name__ == "__main__":
     # exp3_case1()
     # exp3_case2()
     # exp1_1()
->>>>>>> c214b621a1f7a9482e3ec8b61ac8561eb0df7de5
     pass
