@@ -1,6 +1,7 @@
 from torch.nn import Conv2d, MaxPool2d, AvgPool2d, Flatten, Linear, PReLU, FractionalMaxPool2d
 from torch import nn
 import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 from const import *
 from utils import Data
 import torch
@@ -26,19 +27,6 @@ class BaseMlp(nn.Module):
         self.dense4.reset_parameters()
         self.dense5.reset_parameters()
         return
-
-
-class Case_1(nn.Module):
-    def __init__(self):
-        super(Case_1, self).__init__()
-        self.dense = Linear(4, 1, bias=False)
-
-    def reset_parameters(self):
-        self.dense.reset_parameters()
-        return
-
-    def forward(self, x):
-        return self.dense(x)
 
 
 class Mlp(BaseMlp):
@@ -260,29 +248,35 @@ class Fmp(nn.Module):
         x = self.dense3(x)
         return x
 
-# todo waiting to be implemented
 
-
-class ResNet(nn.Module):
+class Summor(nn.Module):
     def __init__(self):
-        super(ResNet, self).__init__()
-        pass
+        super(Summor, self).__init__()
+        self.dense = Linear(4, 1, bias=False)
 
-
-class Case_2(nn.Module):
-    def __init__(self):
-        super(Case_2, self).__init__()
+    def reset_parameters(self):
+        self.dense.reset_parameters()
+        return
 
     def forward(self, x):
-        return 0.5*torch.square(x[0])+2*torch.square(x[1])
+        return self.dense(x)
 
 
-class My_loss(nn.Module):
-    def __init__(self):
-        super(My_loss, self).__init__()
+class Tracker(nn.Module):
+    def __init__(self, w1_init=100, w2_init=100):
+        self.w1_init = w1_init
+        self.w2_init = w2_init
+        self.w1 = Parameter(torch.FloatTensor(w1_init))
+        self.w2 = Parameter(torch.FloatTensor(w2_init))
+        super(Tracker, self).__init__()
 
-    def forward(self, x):
-        return 0.5*torch.square(x[0])+2*torch.square(x[1])
+    def forward(self):
+        return 0.5*torch.square(self.w1)+2*torch.square(self.w2)
+
+    def reset_parameters(self):
+        self.w1 = Parameter(torch.FloatTensor(self.w1_init))
+        self.w2 = Parameter(torch.FloatTensor(self.w2_init))
+        return
 
 
 if __name__ == "__main__":
