@@ -1,7 +1,8 @@
 import torch
+from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import Dsa, FDsa, MiniFDsa, FDecreaseDsa, FDecreaseMiniDsa
+from optim import Dsa, FDsa, MiniFDsa, FDecreaseDsa, FDecreaseMiniDsa, MixDsa
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
@@ -200,7 +201,7 @@ class BatchTrainer():
         p, r, f1, _ = metrics(Preds, Y)
         return (ncorrect/nsample).cpu().numpy(), p, r, f1
 
-    def train(self, lr_init, meta_lr):
+    def train(self):
         # self.optimizier = Dsa(
         #     self.model.parameters(), lr_init, meta_lr)
         # # self.optimizier = torch.optim.Adam(
@@ -230,13 +231,13 @@ class BatchTrainer():
             avg_loss = loss_sum * 1.0/img_num
             # print("Epoch~{}->{}".format(i+1, avg_loss))
             print("Epoch~{}->{}\nval:{}".format(i+1,
-                  avg_loss, self.val()), end=",")
+                  avg_loss, self.val()[0]), end=",")
         return
 
     def fdsa_train(self):
-        self.optimizier = FDecreaseMiniDsa(self.model.parameters())
+        # self.optimizier = FDecreaseMiniDsa(self.model.parameters())
         # self.optimizier = FDecreaseDsa(self.model.parameters())
-        # self.optimizier = MiniFDsa(self.model.parameters())
+        self.optimizier = MiniFDsa(self.model.parameters())
         self.model.train()
         for i in range(EPOCHS):
             loss_sum = 0
@@ -273,8 +274,171 @@ class BatchTrainer():
                   1, avg_loss, acc), end="")
         return
 
+    def fdsa_batch_train(self, num_image):
+        # self.optimizier = FDsa(self.model.parameters())
+        # self.optimizier = FDecreaseMiniDsa(self.model.parameters())
+        self.optimizier = FDecreaseDsa(self.model.parameters())
+        # self.optimizier = MiniFDsa(self.model.parameters())
+        self.model.train()
+        for i in range(EPOCHS):
+            loss_sum = 0
+            img_num = 0
+
+            self.optimizier.zero_grad()
+            loss_sum = 0
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                else:
+                    imgs = imgs.cpu()
+                    label = label.cpu()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label) * len(imgs) / num_image
+                loss.backward()
+                loss_sum += loss.item()
+            self.optimizier.w_step_1()
+
+            self.optimizier.zero_grad()
+            loss_sum = 0
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                else:
+                    imgs = imgs.cpu()
+                    label = label.cpu()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label) * len(imgs) / num_image
+                loss.backward()
+                loss_sum += loss.item()
+            self.optimizier.lr_step()
+            self.optimizier.w_step_2()
+
+            avg_loss = loss_sum
+            acc, p, r, f1 = self.val()
+            print("Epoch~{}->loss:{}\nval:{},".format(i +
+                  1, avg_loss, acc), end="")
+        return
+
+    def mix_train(self, num_image):
+        self.model.train()
+        self.num_image = num_image
+        # for i in range(EPOCHS):
+        # if True:
+        # if i % 4 == 0:
+
+        self.optimizier_adamax = Adamax(self.model.parameters())
+        for i in range(1):
+            self.mix_unit_minibatch_train_adamax(i)
+            # self.mix_unit_minibatch_train(i)
+        print()
+        # else:
+        self.optimizier_adamax = None
+        self.optimizier = MixDsa(self.model.parameters())
+        for i in range(1):
+            self.mix_unit_batch_train(i)
+        return
+
+    def mix_unit_batch_train(self, epoch=0):
+        self.optimizier.zero_grad()
+        loss_sum = 0
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            else:
+                imgs = imgs.cpu()
+                label = label.cpu()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
+            loss.backward()
+            loss_sum += loss.item()
+        self.optimizier.batch_w_step_1()
+
+        self.optimizier.zero_grad()
+        loss_sum = 0
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            else:
+                imgs = imgs.cpu()
+                label = label.cpu()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
+            loss.backward()
+            loss_sum += loss.item()
+        self.optimizier.batch_lr_step()
+        self.optimizier.batch_w_step_2()
+
+        avg_loss = loss_sum
+        acc, p, r, f1 = self.val()
+        print("Epoch~{}->loss:{}\nval:{},".format(epoch + 1, avg_loss, acc), end="")
+        return
+
+    def mix_unit_minibatch_train(self, epoch=0):
+        loss_sum = 0
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            else:
+                imgs = imgs.cpu()
+                label = label.cpu()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label)
+            self.optimizier.zero_grad()
+            loss.backward()
+            self.optimizier.minibatch_w_step()
+            # self.optimizier.minibatch_w_step_1()
+
+            # preds = self.model(imgs)
+            # loss = F.cross_entropy(preds, label)
+            # self.optimizier.zero_grad()
+            # loss.backward()
+            # self.optimizier.minibatch_lr_step()
+            # self.optimizier.minibatch_w_step_2()
+
+            loss_sum += loss.item() * len(imgs)
+
+        acc, p, r, f1 = self.val()
+        print("Epoch~{}~mini->loss:{}\nval:{},".format(epoch + 1, loss_sum/self.num_image, acc), end="")
+        return
+
+    def mix_unit_minibatch_train_adamax(self, epoch=0):
+        self.model.train()
+        loss_sum = 0
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            else:
+                imgs = imgs.cpu()
+                label = label.cpu()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label)
+            self.optimizier_adamax.zero_grad()
+            loss.backward()
+            self.optimizier_adamax.step()
+            loss_sum += loss.item() * len(imgs)
+        avg_loss = loss_sum * 1.0/self.num_image
+        acc, p, r, f1 = self.val()
+        print("Epoch~{}->loss:{}\nval:{},".format(epoch + 1, avg_loss, acc), end="")
+        return self.acc, self.p, self.r, self.f1, self.loss
+
     def get_opt(self):
         return utils.get_opt(self.opt, self.model)
+
+    def save(self, path="model/tmp"):
+        torch.save(self.model, path)
+        return
+
+    def load(self, path="model/tmp"):
+        model = torch.load(path)
+        # self.model.load_state_dict(state_dict)
+        self.model = model
+        return
 
 
 class Case_1_Trainer():
@@ -366,13 +530,19 @@ if __name__ == "__main__":
     data = Data()
     # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
     train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
-    # model = Fmp(input_channel, ndim, nclass)
-    model = DeepConv(input_channel, ndim, nclass)
+    model = Fmp(input_channel, ndim, nclass)
+    # model = DeepConv(input_channel, ndim, nclass)
     trainer = BatchTrainer(train_loader, test_loader, model, opt=ADAMAX)
     st = time()
-    trainer.fdsa_train()
+    # trainer.train()
+    trainer.load()
+    # trainer.fdsa_train()
     # trainer.minibatch_train()
+    trainer.fdsa_batch_train(num_image=NUMIMAGE[MNIST])
+    # print(trainer.val()[0])
+    # trainer.save()
     # trainer.batch_train(num_image=NUMIMAGE[MNIST])
+    # trainer.mix_train(num_image=NUMIMAGE[MNIST])
     print(time() - st)
     # for lr_init in range(-14, -7):
     #     for meta_lr in [0.00005, 0.0001, 0.0008, 0.001, 0.005, 0.01]:
