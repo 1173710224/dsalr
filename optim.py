@@ -154,7 +154,7 @@ class MiniFDsa(Optimizer):
 
 class FDecreaseDsa(Optimizer):
     # 加入慢增快减
-    def __init__(self, params, lr_init=-12, beta_1=0.6, beta_2=0.3) -> None:
+    def __init__(self, params, lr_init=-11, beta_1=0.6, beta_2=0.3) -> None:
         self.params = list(params)
         self.beta_1 = beta_1
         self.beta_2 = beta_2
