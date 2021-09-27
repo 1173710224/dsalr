@@ -2,6 +2,8 @@ from const import EPSILON
 from torch.optim.optimizer import Optimizer
 import torch
 
+# 小数据集，-9, 0.6, 0.3
+
 
 class FDecreaseDsa(Optimizer):
     def __init__(self, params, lr_init=-12, beta_1=0.6, beta_2=0.3) -> None:

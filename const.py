@@ -14,15 +14,17 @@ SMALL = [WINE, CAR, IRIS, AGARICUS]
 
 
 EPOCHS = 30
-EPOCHSDENSE = 50
-EPOCHSTEP1 = 10
-EPOCHSTEP2 = 20
+EPOCHSDENSE = 100
+# fmp svhn: 15 15
+# fmp mnist: 15 15
+EPOCHSTEP1 = 15
+EPOCHSTEP2 = 15
 MAXEPOCHS = 1000
-SUMEPOCH = 100
-TRACKEPOCH = 100
+SUMEPOCH = 1000
+TRACKEPOCH = 1000
 
 EPSILON = 1e-20
-SUMNUMS = [1000, 10000, 1e5]
+SUMNUMS = [1000, 10000, 100000]
 
 ADAM = "adam"
 DSA = "dsa"
@@ -47,6 +49,8 @@ NAME2BATCHSIZE = {
     SVHN: 64,
 }
 
+FMP = "fmp"
+DNN = "dnn"
 
 NUMIMAGE = {
     MNIST: 60000,
@@ -60,6 +64,7 @@ RECALL = "recall"
 PRECISION = "precision"
 F1SCORE = "f1score"
 LOSS = "loss"
+TRACK = "track"
 
 if __name__ == "__main__":
     pass

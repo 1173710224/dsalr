@@ -248,11 +248,47 @@ class Fmp(nn.Module):
         x = self.dense3(x)
         return x
 
+    def reset_parameters(self):
+        self.conv1_1.reset_parameters()
+        
+        self.conv1_2.reset_parameters()
+
+        self.conv2_1.reset_parameters()
+        
+        self.conv2_2.reset_parameters()
+
+        self.conv3_1.reset_parameters()
+        
+        self.conv3_2.reset_parameters()
+        
+        self.conv3_3.reset_parameters()
+
+        self.conv4_1.reset_parameters()
+        
+        self.conv4_2.reset_parameters()
+        
+        self.conv4_3.reset_parameters()
+
+        self.conv5_1.reset_parameters()
+        
+        self.conv5_2.reset_parameters()
+        
+        self.conv5_3.reset_parameters()
+
+        self.conv6_1.reset_parameters()
+        self.conv6_2.reset_parameters()
+        self.conv6_3.reset_parameters()
+
+        self.dense1.reset_parameters()
+        self.dense2.reset_parameters()
+        self.dense3.reset_parameters()
+        return
 
 class Summor(nn.Module):
     def __init__(self):
         super(Summor, self).__init__()
         self.dense = Linear(4, 1, bias=False)
+        pass
 
     def reset_parameters(self):
         self.dense.reset_parameters()
@@ -264,18 +300,23 @@ class Summor(nn.Module):
 
 class Tracker(nn.Module):
     def __init__(self, w1_init=100, w2_init=100):
+        super(Tracker, self).__init__()
         self.w1_init = w1_init
         self.w2_init = w2_init
-        self.w1 = Parameter(torch.FloatTensor(w1_init))
-        self.w2 = Parameter(torch.FloatTensor(w2_init))
-        super(Tracker, self).__init__()
+        self.reset_parameters()
+        pass
 
     def forward(self):
         return 0.5*torch.square(self.w1)+2*torch.square(self.w2)
 
     def reset_parameters(self):
-        self.w1 = Parameter(torch.FloatTensor(self.w1_init))
-        self.w2 = Parameter(torch.FloatTensor(self.w2_init))
+        self.w1 = Parameter(torch.tensor(self.w1_init).float())
+        self.w2 = Parameter(torch.tensor(self.w2_init).float())
+        return
+
+    def reset_init(self, w1_init, w2_init):
+        self.w1_init = w1_init
+        self.w2_init = w2_init
         return
 
 
