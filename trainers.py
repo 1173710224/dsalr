@@ -162,16 +162,24 @@ class BatchTrainer():
             self.optimizier_opt = Adamax(self.model.parameters())
             for i in range(EPOCHSTEP1):
                 self.unit_minibatch_train_opt(i)
+                sig = input("if break, please input 0")
+                if sig == "0":
+                    print("break")
+                    break
             print()
-            if path != None:
-                # self.save_model(path + f"~{self.accu}")
-                self.save_model(path)
+            # if path != None:
+            #     # self.save_model(path + f"~{self.accu}")
+            #     self.save_model(path)
         else:
             self.load_model(path)
+        self.save_model()
         self.optimizier_opt = None
         self.optimizier_dsa = FDecreaseDsa(self.model.parameters())
         for i in range(EPOCHSTEP2):
             self.unit_batch_train_dsa(i)
+            # sig = input("if break, please input 0")
+            # if sig == "0":
+            #     break
         print()
         return
 
@@ -228,9 +236,9 @@ class BatchTrainer():
         self.optimizier_dsa.lr_step()
         self.optimizier_dsa.w_step_2()
 
-        accu = self.record_metrics(loss_sum)
+        self.accu = self.record_metrics(loss_sum)
         print("Batch~Epoch~{}->loss:{}\nval:{},".format(epoch +
-              1, loss_sum, accu), end="")
+              1, loss_sum, self.accu), end="")
         return
 
     def val(self):
@@ -314,7 +322,8 @@ class SumTrainer():
             loss.backward()
             optimizer.step()
             self.loss.append(loss.item())
-            self.params.append(self.model.dense.weight.data.detach().cpu().numpy())
+            self.params.append(
+                self.model.dense.weight.data.detach().cpu().numpy())
             print(f"Epoch~{i+1}: {loss.item()}")
         with open(f"result/sum/{self.data_num}_{opt}", "wb") as f:
             pickle.dump({LOSS: self.loss, TRACK: self.params}, f)
@@ -341,7 +350,8 @@ class SumTrainer():
             optimizer.w_step_2()
 
             self.loss.append(loss.item())
-            self.params.append(self.model.dense.weight.data.detach().cpu().numpy())
+            self.params.append(
+                self.model.dense.weight.data.detach().cpu().numpy())
             print(f"Epoch~{i+1}: {loss.item()}")
         with open(f"result/sum/{self.data_num}_dsa", "wb") as f:
             pickle.dump({LOSS: self.loss, TRACK: self.params}, f)
@@ -408,5 +418,6 @@ class TrackTrainer():
 
 
 if __name__ == "__main__":
-    print(F.mse_loss(torch.tensor([[1], [2.0]]).float().t(), torch.tensor([1, 2.1]).float()))
+    print(F.mse_loss(torch.tensor([[1], [2.0]]).float(
+    ).t(), torch.tensor([1, 2.1]).float()))
     pass
