@@ -370,14 +370,18 @@ class TrackTrainer():
         self.model.train()
         self.model.reset_parameters()
         optimizer = utils.get_opt(opt, self.model)
+
+        self.tracks.append((self.model.w1.detach().clone().cpu().numpy(),
+                            self.model.w2.detach().clone().cpu().numpy()))
         for i in range(TRACKEPOCH):
             preds = self.model()
             optimizer.zero_grad()
             preds.backward()
             optimizer.step()
-            self.tracks.append((self.model.w1.detach().cpu().numpy(),
-                               self.model.w2.detach().cpu().numpy()))
-            print(f"Epoch~{i+1}: {preds.detach().cpu().numpy()}")
+            self.tracks.append((self.model.w1.detach().clone().cpu().numpy(),
+                               self.model.w2.detach().clone().cpu().numpy()))
+            if i % 100 == 0:
+                print(f"Epoch~{i+1}: {preds.detach().cpu().numpy()}")
         with open(f"result/track/{opt}", "wb") as f:
             pickle.dump(self.tracks, f)
         return
@@ -387,6 +391,9 @@ class TrackTrainer():
         self.model.train()
         self.model.reset_parameters()
         optimizer = utils.get_opt(DSA, self.model)
+
+        self.tracks.append((self.model.w1.detach().clone().cpu().numpy(),
+                            self.model.w2.detach().clone().cpu().numpy()))
         for i in range(TRACKEPOCH):
             preds = self.model()
             optimizer.zero_grad()
@@ -401,7 +408,8 @@ class TrackTrainer():
 
             self.tracks.append((self.model.w1.detach().cpu().numpy(),
                                self.model.w2.detach().cpu().numpy()))
-            print(f"Epoch~{i+1}: {preds.detach().cpu().numpy()}")
+            if i % 100 == 0:
+                print(f"Epoch~{i+1}: {preds.detach().cpu().numpy()}")
         with open(f"result/track/dsa", "wb") as f:
             pickle.dump(self.tracks, f)
         return

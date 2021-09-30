@@ -250,29 +250,29 @@ class Fmp(nn.Module):
 
     def reset_parameters(self):
         self.conv1_1.reset_parameters()
-        
+
         self.conv1_2.reset_parameters()
 
         self.conv2_1.reset_parameters()
-        
+
         self.conv2_2.reset_parameters()
 
         self.conv3_1.reset_parameters()
-        
+
         self.conv3_2.reset_parameters()
-        
+
         self.conv3_3.reset_parameters()
 
         self.conv4_1.reset_parameters()
-        
+
         self.conv4_2.reset_parameters()
-        
+
         self.conv4_3.reset_parameters()
 
         self.conv5_1.reset_parameters()
-        
+
         self.conv5_2.reset_parameters()
-        
+
         self.conv5_3.reset_parameters()
 
         self.conv6_1.reset_parameters()
@@ -283,6 +283,7 @@ class Fmp(nn.Module):
         self.dense2.reset_parameters()
         self.dense3.reset_parameters()
         return
+
 
 class Summor(nn.Module):
     def __init__(self):
@@ -307,7 +308,7 @@ class Tracker(nn.Module):
         pass
 
     def forward(self):
-        return 0.5*torch.square(self.w1)+2*torch.square(self.w2)
+        return A*torch.square(self.w1)+B*torch.square(self.w2)
 
     def reset_parameters(self):
         self.w1 = Parameter(torch.tensor(self.w1_init).float())

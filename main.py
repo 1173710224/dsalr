@@ -25,11 +25,13 @@ class CnnExp():
             trainer.fdsa_train(path, pre_train)
         else:
             trainer.train(opt)
-        trainer.save_metrics(f"result/big/{self.model_name}_{dataset}_{opt}")
+        # trainer.save_metrics(f"result/big/{self.model_name}_{dataset}_{opt}")
         return
 
     def run(self):
         for dataset in self.datasets:
+            if self.model_name == DNN and dataset == CIFAR100:
+                continue
             train_loader, test_loader, input_channel, ndim, nclass = self.data.get(
                 dataset)
             if self.model_name == FMP:
@@ -37,7 +39,8 @@ class CnnExp():
             elif self.model_name == DNN:
                 model = DeepConv(input_channel, ndim, nclass)
             trainer = BatchTrainer(train_loader, test_loader, model)
-            for opt in [SGD, MOMENTUM, ADAM, ADAMAX]:
+            for opt in [RMSPROP, ADADELTA, ADAMW, ADAGRAD]:
+                # for opt in [SGD, MOMENTUM, ADAM, ADAMAX]:
                 trainer.train(opt)
                 trainer.save_metrics(f"result/big/{self.model_name}_{dataset}_{opt}")
         return
@@ -129,6 +132,7 @@ class TrackExp():
         for opt in OPTIMIZERS:
             if opt == DSA:
                 continue
+            print(opt)
             self.trainer.train(opt)
         return
 
@@ -141,10 +145,19 @@ class TrackExp():
 
 
 if __name__ == "__main__":
-    # track_exp = TrackExp()
-    # track_exp.trainer.model.reset_init(1, 1)
-    # # track_exp.debug(SGD)
-    # # track_exp.debug(DSA)
+    track_exp = TrackExp()
+    # track_exp.trainer.model.reset_init(-0.06, 0.001)
+    track_exp.trainer.model.reset_init(-1, 1)
+    # track_exp.debug(SGD)
+    track_exp.debug(MOMENTUM)
+
+    # track_exp.debug(RMSPROP)
+    # track_exp.debug(ADAGRAD)
+    # track_exp.debug(ADADELTA)
+    # track_exp.debug(ADAM)
+    # track_exp.debug(ADAMAX)
+    # track_exp.debug(ADAMW)
+    # track_exp.debug(DSA)
     # track_exp.run()
 
     # sum_exp = SumExp()
@@ -157,11 +170,12 @@ if __name__ == "__main__":
     # mlp_exp = MlpExp()
     # # mlp_exp.debug(IRIS, DSA)
     # # mlp_exp.run()
-    # mlp_exp.debug_1000epochs(CAR, DSA)
+    # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
-    cnn_exp = CnnExp(model_name=DNN)
-    cnn_exp.debug(MNIST, DSA)
+    # cnn_exp = CnnExp(model_name=DNN)
+    # cnn_exp.run()
+    # cnn_exp.debug(MNIST, ADAMAX)
     # cnn_exp.debug(SVHN, DSA)
     # cnn_exp.debug(CIFAR10, DSA)
     # cnn_exp.debug(CIFAR100, DSA)
