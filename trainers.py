@@ -167,7 +167,12 @@ class BatchTrainer():
                 # self.save_model(path + f"~{self.accu}")
                 self.save_model(path)
         else:
-            self.load_model(path)
+            # self.load_model(path)
+            state_dict = torch.load("model/resnet_9324.pth")
+            model_stat = {}
+            for name in state_dict["net"].keys():
+                model_stat[name.replace("module.", "")] = state_dict["net"][name]
+            self.model.load_state_dict(model_stat)  # test for resnet
         self.optimizier_opt = None
         self.optimizier_dsa = FDecreaseDsa(self.model.parameters())
         for i in range(EPOCHSTEP2):
@@ -416,5 +421,11 @@ class TrackTrainer():
 
 
 if __name__ == "__main__":
-    print(F.mse_loss(torch.tensor([[1], [2.0]]).float().t(), torch.tensor([1, 2.1]).float()))
+    # print(F.mse_loss(torch.tensor([[1], [2.0]]).float().t(), torch.tensor([1, 2.1]).float()))
+    state_dict = torch.load("model/resnet.pth")
+    print(state_dict)
+    # model_stat = {}
+    # for name in state_dict["net"].keys():
+    #     model_stat[name.replace("module.", "")] = state_dict["net"][name]
+    # print(model_stat)
     pass
