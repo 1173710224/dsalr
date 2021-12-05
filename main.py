@@ -1,6 +1,6 @@
 from const import *
 from trainers import *
-from models import DeepConv, Fmp, Mlp
+from models import DeepConv, Fmp, Mlp, ResNet
 from utils import Data
 import pickle
 
@@ -19,6 +19,8 @@ class CnnExp():
             model = Fmp(input_channel, ndim, nclass)
         elif self.model_name == DNN:
             model = DeepConv(input_channel, ndim, nclass)
+        elif self.model_name == RESNET:  # only used for cifar10 & cifar100
+            model = ResNet(num_classes=nclass)
         trainer = BatchTrainer(train_loader, test_loader, model)
         if opt == DSA:
             path = f"model/pretrained_{self.model_name}_{dataset}_{opt}"
@@ -145,11 +147,11 @@ class TrackExp():
 
 
 if __name__ == "__main__":
-    track_exp = TrackExp()
+    # track_exp = TrackExp()
     # track_exp.trainer.model.reset_init(-0.06, 0.001)
-    track_exp.trainer.model.reset_init(-1, 1)
+    # track_exp.trainer.model.reset_init(-1, 1)
     # track_exp.debug(SGD)
-    track_exp.debug(MOMENTUM)
+    # track_exp.debug(MOMENTUM)
 
     # track_exp.debug(RMSPROP)
     # track_exp.debug(ADAGRAD)
@@ -173,10 +175,10 @@ if __name__ == "__main__":
     # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
-    # cnn_exp = CnnExp(model_name=DNN)
+    cnn_exp = CnnExp(model_name=RESNET)
     # cnn_exp.run()
     # cnn_exp.debug(MNIST, ADAMAX)
     # cnn_exp.debug(SVHN, DSA)
-    # cnn_exp.debug(CIFAR10, DSA)
+    cnn_exp.debug(CIFAR10, DSA, pre_train=False)
     # cnn_exp.debug(CIFAR100, DSA)
     pass

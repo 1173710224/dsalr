@@ -25,7 +25,7 @@ class Parser():
         return
 
     def get_default_path(self):
-        if self.dataset in BIG:
+        if self.dataset in LARGE:
             son_dir = "big"
             # nn = FMP
             nn = DNN
@@ -65,7 +65,7 @@ class LossCollect():
 
 def plt_loss(dataset, log=""):
     x, losses = LossCollect(dataset).get_loss()
-    if dataset in BIG:
+    if dataset in LARGE:
         for opt, y in losses.items():
             label = OPTIMIZERS2LABEL[opt]
             plt.plot(x, y, linewidth=1.5, label=label)
