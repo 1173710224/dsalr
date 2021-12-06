@@ -7,7 +7,7 @@ import pickle
 
 class CnnExp():
     def __init__(self, model_name=FMP) -> None:
-        self.datasets = BIG
+        self.datasets = LARGE
         self.data = Data()
         self.model_name = model_name
         pass
