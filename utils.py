@@ -75,12 +75,17 @@ class Data():
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
+            transforms.Normalize(MNISTMEAN, MNISTSTD),
+        ])
+        test_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(MNISTMEAN, MNISTSTD),
         ])
         data_root_path = "data/"
         train_dataset = datasets.MNIST(root=data_root_path, train=True,
                                        transform=train_transform, download=True)
         test_dataset = datasets.MNIST(root=data_root_path, train=False,
-                                      transform=transforms.ToTensor(), download=True)
+                                      transform=test_transform, download=True)
         train_loader = DataLoader(dataset=train_dataset,
                                   batch_size=NAME2BATCHSIZE[MNIST], shuffle=True,
                                   num_workers=4,
@@ -95,12 +100,17 @@ class Data():
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
+            transforms.Normalize(SVHNMEAN, SVHNSTD),
+        ])
+        test_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(SVHNMEAN, SVHNSTD),
         ])
         data_root_path = "data/SVHN/"
         train_dataset = datasets.SVHN(root=data_root_path, split="train",
                                       transform=train_transform, download=True)
         test_dataset = datasets.SVHN(root=data_root_path, split="test",
-                                     transform=transforms.ToTensor(), download=True)
+                                     transform=test_transform, download=True)
         train_loader = DataLoader(dataset=train_dataset,
                                   batch_size=NAME2BATCHSIZE[SVHN], shuffle=True,
                                   num_workers=4)
