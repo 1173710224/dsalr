@@ -166,7 +166,7 @@ if __name__ == "__main__":
     # # mlp_exp.run_1000epochs()
 
     cnn_exp = CnnExp()
-    cnn_exp.debug(dataset=MNIST)
+    cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
     # cnn_exp.run()
     # cnn_exp.debug(MNIST, ADAMAX)
     # cnn_exp.debug(SVHN, DSA)

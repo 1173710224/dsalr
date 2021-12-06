@@ -225,7 +225,7 @@ def get_opt(opt, model):
     if opt == RMSPROP:
         return torch.optim.RMSprop(model.parameters())
     if opt == MOMENTUM:
-        return torch.optim.SGD(model.parameters(), lr=0.01, momentum=P_MOMENTUM)
+        return torch.optim.SGD(model.parameters(), lr=0.1, momentum=P_MOMENTUM, weight_decay=0.0001)
     return None
 
 
