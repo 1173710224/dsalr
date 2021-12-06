@@ -20,11 +20,22 @@ class Data():
         return
 
     def load_cifar10(self):
+        train_transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR10MEAN, CIFAR10STD),
+        ])
+        test_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR10MEAN, CIFAR10STD),
+        ])
         data_root_path = "data/"
         train_dataset = datasets.CIFAR10(root=data_root_path, train=True,
-                                         transform=transforms.ToTensor(), download=True)
+                                         transform=train_transform,
+                                         download=True)
         test_dataset = datasets.CIFAR10(root=data_root_path, train=False,
-                                        transform=transforms.ToTensor(), download=True)
+                                        transform=test_transform, download=True)
         train_loader = DataLoader(dataset=train_dataset,
                                   batch_size=NAME2BATCHSIZE[CIFAR10], shuffle=True,
                                   num_workers=4,
@@ -35,11 +46,21 @@ class Data():
         return train_loader, test_loader, 3, 32, 10
 
     def load_cifar100(self):
+        train_transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR100MEAN, CIFAR100STD),
+        ])
+        test_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR100MEAN, CIFAR100STD),
+        ])
         data_root_path = "data/"
         train_dataset = datasets.CIFAR100(root=data_root_path, train=True,
-                                          transform=transforms.ToTensor(), download=True)
+                                          transform=train_transform, download=True)
         test_dataset = datasets.CIFAR100(root=data_root_path, train=False,
-                                         transform=transforms.ToTensor(), download=True)
+                                         transform=test_transform, download=True)
         train_loader = DataLoader(dataset=train_dataset,
                                   batch_size=NAME2BATCHSIZE[CIFAR100], shuffle=True,
                                   num_workers=4,
@@ -50,9 +71,14 @@ class Data():
         return train_loader, test_loader, 3, 32, 100
 
     def load_mnist(self):
+        train_transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ])
         data_root_path = "data/"
         train_dataset = datasets.MNIST(root=data_root_path, train=True,
-                                       transform=transforms.ToTensor(), download=True)
+                                       transform=train_transform, download=True)
         test_dataset = datasets.MNIST(root=data_root_path, train=False,
                                       transform=transforms.ToTensor(), download=True)
         train_loader = DataLoader(dataset=train_dataset,
@@ -65,9 +91,14 @@ class Data():
         return train_loader, test_loader, 1, 28, 10
 
     def load_svhn(self):
+        train_transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ])
         data_root_path = "data/SVHN/"
         train_dataset = datasets.SVHN(root=data_root_path, split="train",
-                                      transform=transforms.ToTensor(), download=True)
+                                      transform=train_transform, download=True)
         test_dataset = datasets.SVHN(root=data_root_path, split="test",
                                      transform=transforms.ToTensor(), download=True)
         train_loader = DataLoader(dataset=train_dataset,

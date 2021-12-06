@@ -1,0 +1,196 @@
+base_acc:9532
+lr_init = -12
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.010731297687470942
+val:0.9497000000000001,Batch~Epoch~2->loss:4.400791939813644
+val:0.8263,Batch~Epoch~3->loss:0.5352839680272155
+val:0.9396,Batch~Epoch~4->loss:3.785245108883828
+val:0.8166,Batch~Epoch~5->loss:0.011553457698937564
+val:0.9497000000000001,Batch~Epoch~6->loss:0.004589174328170742
+val:0.9498000000000001,Batch~Epoch~7->loss:0.04400252567182861
+val:0.9417000000000001,Batch~Epoch~8->loss:0.02157620553361994
+val:0.9466,Batch~Epoch~9->loss:0.0031644054089277063
+val:0.9489000000000001,Batch~Epoch~10->loss:0.0007463365470705696
+val:0.9504,Batch~Epoch~11->loss:0.00013520798030963732
+val:0.9519000000000001,Batch~Epoch~12->loss:0.0001651395626356411
+val:0.9519000000000001,Batch~Epoch~13->loss:0.00010088890930259886
+val:0.9526,Batch~Epoch~14->loss:9.768847047442186e-05
+val:0.9517,Batch~Epoch~15->loss:0.00016308788005603425
+val:0.9518000000000001,
+
+lr_init = -15
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.00173816431765772
+val:0.9527,Batch~Epoch~2->loss:0.0005639794245553276
+val:0.9529000000000001,Batch~Epoch~3->loss:0.00027942264848945797
+val:0.9539000000000001,Batch~Epoch~4->loss:0.00019451374779677622
+val:0.9520000000000001,Batch~Epoch~5->loss:0.00014125914495721759
+val:0.9529000000000001,Batch~Epoch~6->loss:0.0001681269475231062
+val:0.9518000000000001,Batch~Epoch~7->loss:0.00011560047136072171
+val:0.9524,Batch~Epoch~8->loss:0.0001023412010492386
+val:0.9517,Batch~Epoch~9->loss:7.934975242473996e-05
+val:0.9515,Batch~Epoch~10->loss:0.0001261775125582787
+val:0.9516,Batch~Epoch~11->loss:5.280381579342297e-05
+val:0.9527,Batch~Epoch~12->loss:5.728807836535843e-05
+val:0.9518000000000001,Batch~Epoch~13->loss:7.47965771561443e-05
+val:0.9522,
+
+lr_init = -18
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.001759574974471434
+val:0.9519000000000001,Batch~Epoch~2->loss:0.001040519850334931
+val:0.9520000000000001,Batch~Epoch~3->loss:0.0008076708796806997
+val:0.9522,Batch~Epoch~4->loss:0.0006866572612693744
+val:0.9518000000000001,Batch~Epoch~5->loss:0.0005570938280925475
+val:0.9518000000000001,Batch~Epoch~6->loss:0.0003593945895943307
+val:0.9519000000000001,
+
+lr_init = -16
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.0018011109934832348
+val:0.9520000000000001,Batch~Epoch~2->loss:0.000748113516920057
+val:0.9524,Batch~Epoch~3->loss:0.0004012001344051441
+val:0.9520000000000001,
+
+lr_init = -14
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.0018061215675970743
+val:0.9524,Batch~Epoch~2->loss:0.0006945433755447539
+val:0.9516,Batch~Epoch~3->loss:0.009010554469256249
+val:0.9484,Batch~Epoch~4->loss:0.0030492420334482517
+val:0.9488000000000001,
+
+base_acc:8120
+lr_init = -12
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.4198970426223241
+val:0.8499,Batch~Epoch~2->loss:1.1415868023177609
+val:0.7967000000000001,Batch~Epoch~3->loss:0.5877407375373878
+val:0.8497,Batch~Epoch~4->loss:0.6136803516419604
+val:0.8333,Batch~Epoch~5->loss:0.4230175081756897
+val:0.8608,Batch~Epoch~6->loss:0.43564308068016544
+val:0.8532000000000001,Batch~Epoch~7->loss:0.3612896290142089
+val:0.8635,Batch~Epoch~8->loss:0.35716389876324683
+val:0.8628,Batch~Epoch~9->loss:0.34445418234099634
+val:0.8619,Batch~Epoch~10->loss:0.3403658650931902
+val:0.8663000000000001,Batch~Epoch~11->loss:0.33238868074840866
+val:0.8661000000000001,Batch~Epoch~12->loss:0.3269731411419343
+val:0.868,Batch~Epoch~13->loss:0.3256843342096545
+val:0.8678,Batch~Epoch~14->loss:0.322981110366527
+val:0.8692000000000001,Batch~Epoch~15->loss:0.315504356083693
+val:0.8693000000000001,
+
+base_acc:9549
+lr_init = -15
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.0016155599839748902
+val:0.9538000000000001,Batch~Epoch~2->loss:0.0007303950574737428
+val:0.9554,Batch~Epoch~3->loss:0.0002922528449857964
+val:0.9542,Batch~Epoch~4->loss:0.00031243040650963394
+val:0.9548000000000001,Batch~Epoch~5->loss:0.00012041817961438994
+val:0.9547,Batch~Epoch~6->loss:0.00012216069545978314
+val:0.9537,Batch~Epoch~7->loss:0.00022825041571294946
+val:0.9542,Batch~Epoch~8->loss:9.608656957205142e-05
+val:0.9535,Batch~Epoch~9->loss:6.79860859333914e-05
+val:0.9533,Batch~Epoch~10->loss:0.00013394295931279387
+val:0.9544,Batch~Epoch~11->loss:6.341791465525048e-05
+val:0.9537,Batch~Epoch~12->loss:0.00010618067385692598
+val:0.9542,Batch~Epoch~13->loss:5.950665343079642e-05
+val:0.9548000000000001,Batch~Epoch~14->loss:5.037859212642104e-05
+val:0.9537,Batch~Epoch~15->loss:8.923384514325505e-05
+val:0.9546,
+
+base_acc:9005
+lr_init = -15
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.1611312567110872
+val:0.9117000000000001,Batch~Epoch~2->loss:0.13852967610000633
+val:0.9164,Batch~Epoch~3->loss:0.12708652209403226
+val:0.9188000000000001,Batch~Epoch~4->loss:0.11491969569033245
+val:0.9206000000000001,Batch~Epoch~5->loss:0.10557376257202122
+val:0.9227000000000001,Batch~Epoch~6->loss:0.10129223148396704
+val:0.9248000000000001,Batch~Epoch~7->loss:0.09503814014897216
+val:0.9266000000000001,Batch~Epoch~8->loss:0.09022129854747618
+val:0.9283,Batch~Epoch~9->loss:0.08590459021434071
+val:0.9293,Batch~Epoch~10->loss:0.08087686795988702
+val:0.9298000000000001,Batch~Epoch~11->loss:0.07822973575457581
+val:0.9316000000000001,Batch~Epoch~12->loss:0.07545708030011156
+val:0.9322,Batch~Epoch~13->loss:0.07380931962688919
+val:0.9327000000000001,Batch~Epoch~14->loss:0.06897174142613949
+val:0.934,Batch~Epoch~15->loss:0.06849458440592571
+val:0.9341,Batch~Epoch~16->loss:0.06411048885820492
+val:0.9348000000000001,Batch~Epoch~17->loss:0.06373033450654475
+val:0.9348000000000001,Batch~Epoch~18->loss:0.06141495893643878
+val:0.9353,Batch~Epoch~19->loss:0.059511208437470486
+val:0.9351,Batch~Epoch~20->loss:0.05791023645178939
+val:0.9362,
+
+base_acc:9005
+lr_init = -13
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.14058984533767216
+val:0.9206000000000001,Batch~Epoch~2->loss:0.2596529737347737
+val:0.9119,Batch~Epoch~3->loss:0.20550894450570922
+val:0.918,Batch~Epoch~4->loss:0.13824625178676797
+val:0.925,Batch~Epoch~5->loss:0.1186614419457328
+val:0.9235000000000001,Batch~Epoch~6->loss:0.10008603918686276
+val:0.9275,Batch~Epoch~7->loss:0.09347643221553881
+val:0.9281,Batch~Epoch~8->loss:0.08571978055988438
+val:0.9301,Batch~Epoch~9->loss:0.08244878387631616
+val:0.9292,Batch~Epoch~10->loss:0.08155747977434658
+val:0.9306000000000001,Batch~Epoch~11->loss:0.07528270278999116
+val:0.9309000000000001,Batch~Epoch~12->loss:0.07317454682925018
+val:0.9317000000000001,Batch~Epoch~13->loss:0.07123564496214385
+val:0.9328000000000001,Batch~Epoch~14->loss:0.06963790535519365
+val:0.9332,Batch~Epoch~15->loss:0.06566496671166533
+val:0.9341,Batch~Epoch~16->loss:0.06371537089034973
+val:0.9344,Batch~Epoch~17->loss:0.062160761597624514
+val:0.935,Batch~Epoch~18->loss:0.061301316432945896
+val:0.9358000000000001,Batch~Epoch~19->loss:0.058248770598765987
+val:0.936,Batch~Epoch~20->loss:0.053833911137189716
+val:0.9362,
+
+base_acc:9324
+lr_init = -15
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Batch~Epoch~1->loss:0.031124686223847675
+val:0.9379000000000001,Batch~Epoch~2->loss:0.024037272546593158
+val:0.9417000000000001,Batch~Epoch~3->loss:0.018918924066838372
+val:0.9421,Batch~Epoch~4->loss:0.016624229421950076
+val:0.9440000000000001,Batch~Epoch~5->loss:0.012781698372577921
+val:0.9445,Batch~Epoch~6->loss:0.010233560018832577
+val:0.9458000000000001,Batch~Epoch~7->loss:0.010655121483409857
+val:0.9464,Batch~Epoch~8->loss:0.008677396015286831
+val:0.9454,Batch~Epoch~9->loss:0.007419124863872639
+val:0.9463,Batch~Epoch~10->loss:0.00728658844536767
+val:0.9459000000000001,Batch~Epoch~11->loss:0.0076201631385401924
+val:0.9462,Batch~Epoch~12->loss:0.005664866530466384
+val:0.9467000000000001,Batch~Epoch~13->loss:0.006322129590273562
+val:0.9466,Batch~Epoch~14->loss:0.0056188249731263795
+val:0.9468000000000001,Batch~Epoch~15->loss:0.005231760312199185
+val:0.9463,Batch~Epoch~16->loss:0.004963568527756479
+val:0.9464,Batch~Epoch~17->loss:0.005000481173649263
+val:0.9467000000000001,Batch~Epoch~18->loss:0.004846320091502321
+val:0.9467000000000001,Batch~Epoch~19->loss:0.0040020790049482
+val:0.9470000000000001,Batch~Epoch~20->loss:0.003634626080469161
+val:0.9474,

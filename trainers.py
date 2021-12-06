@@ -8,7 +8,7 @@ from optim import FDecreaseDsa
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
-from models import My_loss, Mlp, DeepConv, Fmp, Summor, Tracker
+from models import Mlp, DeepConv, Fmp, Summor, Tracker
 from utils import Data
 import utils
 from time import time
@@ -70,7 +70,7 @@ class Trainer():
             optimizer.lr_step()
             optimizer.w_step_2()
 
-            accu = self.record_metrics()
+            accu = self.record_metrics(loss.item())
             print("Epoch~{}->loss:{}\nval:{},".format(i +
                   1, loss.item(), accu), end="")
         return
@@ -79,10 +79,10 @@ class Trainer():
         self.model.eval()
         x, y = self.test_data
         preds = self.model(x)
-        preds = preds.detach().cpu().numpy()
-        preds = [np.argmax(preds[i]) for i in range(len(preds))]
-        p, r, f1, _ = metrics(preds, y.cpu().numpy())
         accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
+        preds = preds.detach().cpu().numpy()
+        preds = preds.argmax(axis=1)
+        p, r, f1, _ = metrics(preds, y.cpu().numpy())
         return accu.cpu().numpy(), p, r, f1
 
     def record_metrics(self, loss):
@@ -128,8 +128,8 @@ class BatchTrainer():
         pass
 
     def train(self, opt=ADAM):
-        self.record_metrics()
-        self.mode.reset_parameters()
+        self.reset_metrics()
+        self.model.reset_parameters()
 
         optimizier = utils.get_opt(opt, self.model)
         for i in range(EPOCHS):
@@ -154,14 +154,25 @@ class BatchTrainer():
         print()
         return
 
-    def fdsa_train(self):
+    def fdsa_train(self, path=None, pre_train=True):
         self.reset_metrics()
-        self.mode.reset_parameters()
-
-        self.optimizier_opt = Adamax(self.model.parameters())
-        for i in range(EPOCHSTEP1):
-            self.unit_minibatch_train_opt(i)
-        print()
+        self.model.reset_parameters()
+        if pre_train:
+            # self.optimizier_opt = Adam(self.model.parameters())
+            self.optimizier_opt = Adamax(self.model.parameters())
+            for i in range(EPOCHSTEP1):
+                self.unit_minibatch_train_opt(i)
+            print()
+            if path != None:
+                # self.save_model(path + f"~{self.accu}")
+                self.save_model(path)
+        else:
+            # self.load_model(path)
+            state_dict = torch.load("model/resnet_9324.pth")
+            model_stat = {}
+            for name in state_dict["net"].keys():
+                model_stat[name.replace("module.", "")] = state_dict["net"][name]
+            self.model.load_state_dict(model_stat)  # test for resnet
         self.optimizier_opt = None
         self.optimizier_dsa = FDecreaseDsa(self.model.parameters())
         for i in range(EPOCHSTEP2):
@@ -185,9 +196,9 @@ class BatchTrainer():
             loss.backward()
             self.optimizier_opt.step()
             loss_sum += loss.item() * len(imgs)/self.num_image
-        accu = self.record_metrics(loss_sum)
+        self.accu = self.record_metrics(loss_sum)
         print("Minibatch~Epoch~{}->loss:{}\nval:{},".format(epoch +
-              1, loss_sum, accu), end="")
+              1, loss_sum, self.accu), end="")
         return
 
     def unit_batch_train_dsa(self, epoch=0):
@@ -231,7 +242,7 @@ class BatchTrainer():
         self.model.eval()
         ncorrect = 0
         nsample = 0
-        preds = []
+        Preds = []
         Y = []
         for imgs, label in self.test_loader:
             if torch.cuda.is_available():
@@ -242,11 +253,11 @@ class BatchTrainer():
                 label = label.cpu()
             preds = self.model(imgs)
             tmp = preds.detach().cpu().numpy()
-            preds.extend([np.argmax(tmp[i]) for i in range(len(tmp))])
+            Preds.extend([np.argmax(tmp[i]) for i in range(len(tmp))])
             Y.extend(label.detach().cpu().numpy())
             ncorrect += torch.sum(preds.max(1)[1].eq(label).double())
             nsample += len(label)
-        p, r, f1, _ = metrics(preds, Y)
+        p, r, f1, _ = metrics(Preds, Y)
         return (ncorrect/nsample).cpu().numpy(), p, r, f1
 
     def record_metrics(self, loss_sum):
@@ -278,6 +289,7 @@ class BatchTrainer():
     def load_model(self, path="model/tmp"):
         state_dict = torch.load(path)
         self.model.load_state_dict(state_dict)
+        # self.model = torch.load(path)
         return
 
 
@@ -296,18 +308,48 @@ class SumTrainer():
 
     def train(self, opt=ADAM):
         self.loss = []
+        self.params = []
         self.model.train()
         self.model.reset_parameters()
         optimizer = utils.get_opt(opt, self.model)
-        for _ in range(SUMEPOCH):
+        for i in range(SUMEPOCH):
             preds = self.model(self.x)
-            loss = F.mse_loss(preds, self.y)
+            loss = F.mse_loss(preds.t(), self.y)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             self.loss.append(loss.item())
+            self.params.append(self.model.dense.weight.data.detach().cpu().numpy())
+            print(f"Epoch~{i+1}: {loss.item()}")
         with open(f"result/sum/{self.data_num}_{opt}", "wb") as f:
-            pickle.dump(self.loss, f)
+            pickle.dump({LOSS: self.loss, TRACK: self.params}, f)
+        return
+
+    def fdsa_train(self):
+        self.loss = []
+        self.params = []
+        self.model.train()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(DSA, self.model)
+        for i in range(SUMEPOCH):
+            preds = self.model(self.x)
+            loss = F.mse_loss(preds.t(), self.y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.w_step_1()
+
+            preds = self.model(self.x)
+            loss = F.mse_loss(preds.t(), self.y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.lr_step()
+            optimizer.w_step_2()
+
+            self.loss.append(loss.item())
+            self.params.append(self.model.dense.weight.data.detach().cpu().numpy())
+            print(f"Epoch~{i+1}: {loss.item()}")
+        with open(f"result/sum/{self.data_num}_dsa", "wb") as f:
+            pickle.dump({LOSS: self.loss, TRACK: self.params}, f)
         return
 
     def reset_data(self, num=10000):
@@ -315,6 +357,9 @@ class SumTrainer():
         torch.manual_seed(123)
         self.x = torch.rand((self.data_num, 4))
         self.y = torch.sum(self.x, dim=1)
+        if torch.cuda.is_available():
+            self.x = self.x.cuda()
+            self.y = self.y.cuda()
         return
 
 
@@ -330,54 +375,57 @@ class TrackTrainer():
         self.model.train()
         self.model.reset_parameters()
         optimizer = utils.get_opt(opt, self.model)
-        for _ in range(TRACKEPOCH):
+
+        self.tracks.append((self.model.w1.detach().clone().cpu().numpy(),
+                            self.model.w2.detach().clone().cpu().numpy()))
+        for i in range(TRACKEPOCH):
             preds = self.model()
             optimizer.zero_grad()
             preds.backward()
             optimizer.step()
-            self.tracks.append((self.model.w1.cpu().numpy(),
-                               self.model.w2.cpu().numpy()))
+            self.tracks.append((self.model.w1.detach().clone().cpu().numpy(),
+                               self.model.w2.detach().clone().cpu().numpy()))
+            if i % 100 == 0:
+                print(f"Epoch~{i+1}: {preds.detach().cpu().numpy()}")
         with open(f"result/track/{opt}", "wb") as f:
+            pickle.dump(self.tracks, f)
+        return
+
+    def fdsa_train(self):
+        self.tracks = []
+        self.model.train()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(DSA, self.model)
+
+        self.tracks.append((self.model.w1.detach().clone().cpu().numpy(),
+                            self.model.w2.detach().clone().cpu().numpy()))
+        for i in range(TRACKEPOCH):
+            preds = self.model()
+            optimizer.zero_grad()
+            preds.backward()
+            optimizer.w_step_1()
+
+            preds = self.model()
+            optimizer.zero_grad()
+            preds.backward()
+            optimizer.lr_step()
+            optimizer.w_step_2()
+
+            self.tracks.append((self.model.w1.detach().cpu().numpy(),
+                               self.model.w2.detach().cpu().numpy()))
+            if i % 100 == 0:
+                print(f"Epoch~{i+1}: {preds.detach().cpu().numpy()}")
+        with open(f"result/track/dsa", "wb") as f:
             pickle.dump(self.tracks, f)
         return
 
 
 if __name__ == "__main__":
-    # data = Data()
-    # # train_data, test_data, ndim, nclass = data.load_car()
-    # train_data, test_data, ndim, nclass = data.load_wine()
-    # # train_data, test_data, ndim, nclass = data.load_iris()
-    # # train_data, test_data, ndim, nclass = data.load_agaricus_lepiota()
-    # model = Mlp(ndim, nclass)
-    # trainer = Trainer(train_data, test_data, model, opt=ADAM)
-    # trainer.fdsa_train()
-    # # trainer.train()
-    # res = trainer.val()
-    # print(res)
-
-    data = Data()
-    # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
-    train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
-    model = Fmp(input_channel, ndim, nclass)
-    # model = DeepConv(input_channel, ndim, nclass)
-    trainer = BatchTrainer(train_loader, test_loader, model, opt=ADAMAX)
-    st = time()
-    # trainer.train()
-    trainer.load()
-    # trainer.fdsa_train()
-    # trainer.minibatch_train()
-    trainer.fdsa_batch_train(num_image=NUMIMAGE[MNIST])
-    # print(trainer.val()[0])
-    # trainer.save()
-    # trainer.batch_train(num_image=NUMIMAGE[MNIST])
-    # trainer.mix_train(num_image=NUMIMAGE[MNIST])
-    print(time() - st)
-    # for lr_init in range(-14, -7):
-    #     for meta_lr in [0.00005, 0.0001, 0.0008, 0.001, 0.005, 0.01]:
-    #         st = time()
-    #         print(f"lr_init:{lr_init}, meta_lr:{meta_lr}")
-    #         model = Fmp(input_channel, ndim, nclass)
-    #         trainer = BatchTrainer(train_loader, test_loader, model)
-    #         trainer.minibatch_train()
-    #         print(f"time long: {time() - st}")
+    # print(F.mse_loss(torch.tensor([[1], [2.0]]).float().t(), torch.tensor([1, 2.1]).float()))
+    state_dict = torch.load("model/resnet.pth")
+    print(state_dict)
+    # model_stat = {}
+    # for name in state_dict["net"].keys():
+    #     model_stat[name.replace("module.", "")] = state_dict["net"][name]
+    # print(model_stat)
     pass

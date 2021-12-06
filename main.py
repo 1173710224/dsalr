@@ -1,50 +1,50 @@
 from const import *
 from trainers import *
-from models import Case_1, Case_2, DeepConv, Fmp, Mlp
+from models import DeepConv, Fmp, Mlp, ResNet
 from utils import Data
 import pickle
-data = Data()
-loaders = {
-    CIFAR10: data.load_cifar10(),
-    CIFAR100: data.load_cifar100(),
-    MNIST: data.load_mnist(),
-    SVHN: data.load_svhn(),
-    WINE: data.load_wine(),
-    CAR: data.load_car(),
-    AGARICUS: data.load_agaricus_lepiota(),
-    IRIS: data.load_iris(),
-}
 
 
 class CnnExp():
-    def __init__(self) -> None:
+    def __init__(self, model_name=FMP) -> None:
         self.datasets = BIG
         self.data = Data()
+        self.model_name = model_name
         pass
 
-    def debug(self, dataset=MNIST, opt=ADAM):
+    def debug(self, dataset=MNIST, opt=ADAM, pre_train=True):
         train_loader, test_loader, input_channel, ndim, nclass = self.data.get(
             dataset)
-        model = Fmp(input_channel, ndim, nclass)
+        if self.model_name == FMP:
+            model = Fmp(input_channel, ndim, nclass)
+        elif self.model_name == DNN:
+            model = DeepConv(input_channel, ndim, nclass)
+        elif self.model_name == RESNET:  # only used for cifar10 & cifar100
+            model = ResNet(num_classes=nclass)
         trainer = BatchTrainer(train_loader, test_loader, model)
         if opt == DSA:
-            path = f"model/fmp_{dataset}_{opt}"
-            trainer.save_model(path)
-            trainer.fdsa_train()
+            path = f"model/pretrained_{self.model_name}_{dataset}_{opt}"
+            trainer.fdsa_train(path, pre_train)
         else:
             trainer.train(opt)
-        trainer.save_metrics(f"result/big/fmp_{dataset}_{opt}")
+        # trainer.save_metrics(f"result/big/{self.model_name}_{dataset}_{opt}")
         return
 
     def run(self):
         for dataset in self.datasets:
+            if self.model_name == DNN and dataset == CIFAR100:
+                continue
             train_loader, test_loader, input_channel, ndim, nclass = self.data.get(
                 dataset)
-            model = Fmp(input_channel, ndim, nclass)
+            if self.model_name == FMP:
+                model = Fmp(input_channel, ndim, nclass)
+            elif self.model_name == DNN:
+                model = DeepConv(input_channel, ndim, nclass)
             trainer = BatchTrainer(train_loader, test_loader, model)
-            for opt in [SGD, MOMENTUM, ADAM, ADAMAX]:
+            for opt in [RMSPROP, ADADELTA, ADAMW, ADAGRAD]:
+                # for opt in [SGD, MOMENTUM, ADAM, ADAMAX]:
                 trainer.train(opt)
-                trainer.save_metrics(f"result/big/fmp_{dataset}_{opt}")
+                trainer.save_metrics(f"result/big/{self.model_name}_{dataset}_{opt}")
         return
 
 
@@ -55,9 +55,8 @@ class MlpExp():
         pass
 
     def debug(self, dataset=IRIS, opt=ADAM):
-        train_data, test_data, input_channel, ndim, nclass = self.data.get(
-            dataset)
-        model = Mlp(input_channel, ndim, nclass)
+        train_data, test_data, ndim, nclass = self.data.get(dataset)
+        model = Mlp(ndim, nclass)
         trainer = Trainer(train_data, test_data, model)
         if opt == DSA:
             trainer.fdsa_train()
@@ -68,9 +67,9 @@ class MlpExp():
 
     def run(self):
         for dataset in self.datasets:
-            train_data, test_data, input_channel, ndim, nclass = self.data.get(
+            train_data, test_data, ndim, nclass = self.data.get(
                 dataset)
-            model = Mlp(input_channel, ndim, nclass)
+            model = Mlp(ndim, nclass)
             trainer = Trainer(train_data, test_data, model)
             for opt in OPTIMIZERS:
                 if opt == DSA:
@@ -80,17 +79,27 @@ class MlpExp():
         return
 
     def run_1000epochs(self):
-        EPOCHSDENSE = 1000
         for dataset in self.datasets:
-            train_data, test_data, input_channel, ndim, nclass = self.data.get(
+            train_data, test_data, ndim, nclass = self.data.get(
                 dataset)
-            model = Mlp(input_channel, ndim, nclass)
+            model = Mlp(ndim, nclass)
             trainer = Trainer(train_data, test_data, model)
             for opt in OPTIMIZERS:
                 if opt == DSA:
                     continue
                 trainer.train(opt)
-                trainer.save_metrics(f"result/1000epochs/mlp_{dataset}_{opt}")
+                trainer.save_metrics(f"result/epochs1000/mlp_{dataset}_{opt}")
+        return
+
+    def debug_1000epochs(self, dataset=IRIS, opt=ADAM):
+        train_data, test_data, ndim, nclass = self.data.get(dataset)
+        model = Mlp(ndim, nclass)
+        trainer = Trainer(train_data, test_data, model)
+        if opt == DSA:
+            trainer.fdsa_train()
+        else:
+            trainer.train(opt)
+        trainer.save_metrics(f"result/epochs1000/mlp_{dataset}_{opt}")
         return
 
 
@@ -103,7 +112,16 @@ class SumExp():
         for num in SUMNUMS:
             self.trainer.reset_data(num)
             for opt in OPTIMIZERS:
+                if opt == DSA:
+                    continue
                 self.trainer.train(opt)
+        return
+
+    def debug(self, opt=ADAM):
+        if opt == DSA:
+            self.trainer.fdsa_train()
+        else:
+            self.trainer.train(opt)
         return
 
 
@@ -114,9 +132,53 @@ class TrackExp():
 
     def run(self):
         for opt in OPTIMIZERS:
+            if opt == DSA:
+                continue
+            print(opt)
+            self.trainer.train(opt)
+        return
+
+    def debug(self, opt=ADAM):
+        if opt == DSA:
+            self.trainer.fdsa_train()
+        else:
             self.trainer.train(opt)
         return
 
 
 if __name__ == "__main__":
+    # track_exp = TrackExp()
+    # track_exp.trainer.model.reset_init(-0.06, 0.001)
+    # track_exp.trainer.model.reset_init(-1, 1)
+    # track_exp.debug(SGD)
+    # track_exp.debug(MOMENTUM)
+
+    # track_exp.debug(RMSPROP)
+    # track_exp.debug(ADAGRAD)
+    # track_exp.debug(ADADELTA)
+    # track_exp.debug(ADAM)
+    # track_exp.debug(ADAMAX)
+    # track_exp.debug(ADAMW)
+    # track_exp.debug(DSA)
+    # track_exp.run()
+
+    # sum_exp = SumExp()
+    # # sum_exp.trainer.reset_data(100000)
+    # # sum_exp.debug(DSA)
+    # sum_exp.run()
+    # # sum_exp.debug(SGD)
+    # # sum_exp.debug(ADAM)
+
+    # mlp_exp = MlpExp()
+    # # mlp_exp.debug(IRIS, DSA)
+    # # mlp_exp.run()
+    # mlp_exp.debug_1000epochs(WINE, DSA)
+    # # mlp_exp.run_1000epochs()
+
+    cnn_exp = CnnExp(model_name=RESNET)
+    # cnn_exp.run()
+    # cnn_exp.debug(MNIST, ADAMAX)
+    # cnn_exp.debug(SVHN, DSA)
+    cnn_exp.debug(CIFAR10, DSA, pre_train=False)
+    # cnn_exp.debug(CIFAR100, DSA)
     pass
