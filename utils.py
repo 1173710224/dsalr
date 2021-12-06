@@ -187,6 +187,13 @@ class Data():
         return None
 
 
+def num_image(loader):
+    res = 0
+    for _, label in loader:
+        res += len(label)
+    return res
+
+
 def get_opt(opt, model):
     if opt == ADAM:
         return torch.optim.Adam(
@@ -213,7 +220,7 @@ def get_opt(opt, model):
 
 
 def get_res(dataset, opt):
-    if dataset in BIG:
+    if dataset in LARGE:
         with open(f"result/big/fmp_{dataset}_{opt}") as f:
             return pickle.load(f)
     elif dataset in SMALL:

@@ -6,28 +6,16 @@ import pickle
 
 
 class CnnExp():
-    def __init__(self, model_name=FMP) -> None:
-        self.datasets = BIG
-        self.data = Data()
-        self.model_name = model_name
+    def __init__(self,) -> None:
+        self.datasets = LARGE
         pass
 
-    def debug(self, dataset=MNIST, opt=ADAM, pre_train=True):
-        train_loader, test_loader, input_channel, ndim, nclass = self.data.get(
-            dataset)
-        if self.model_name == FMP:
-            model = Fmp(input_channel, ndim, nclass)
-        elif self.model_name == DNN:
-            model = DeepConv(input_channel, ndim, nclass)
-        elif self.model_name == RESNET:  # only used for cifar10 & cifar100
-            model = ResNet(num_classes=nclass)
-        trainer = BatchTrainer(train_loader, test_loader, model)
-        if opt == DSA:
-            path = f"model/pretrained_{self.model_name}_{dataset}_{opt}"
-            trainer.fdsa_train(path, pre_train)
-        else:
-            trainer.train(opt)
-        # trainer.save_metrics(f"result/big/{self.model_name}_{dataset}_{opt}")
+    def debug(self, model_name=RESNET, dataset=MNIST, opt=ADAM,
+              pre_train=True):
+        trainer = MiniBatchTrainer(model_name, dataset)
+        trainer.train(opt)
+        trainer.save_metrics(
+            f"result/large/{self.model_name}_{dataset}_{opt}_debug.json")
         return
 
     def run(self):
@@ -40,11 +28,12 @@ class CnnExp():
                 model = Fmp(input_channel, ndim, nclass)
             elif self.model_name == DNN:
                 model = DeepConv(input_channel, ndim, nclass)
-            trainer = BatchTrainer(train_loader, test_loader, model)
+            trainer = MiniBatchTrainer(train_loader, test_loader, model)
             for opt in [RMSPROP, ADADELTA, ADAMW, ADAGRAD]:
                 # for opt in [SGD, MOMENTUM, ADAM, ADAMAX]:
                 trainer.train(opt)
-                trainer.save_metrics(f"result/big/{self.model_name}_{dataset}_{opt}")
+                trainer.save_metrics(
+                    f"result/big/{self.model_name}_{dataset}_{opt}")
         return
 
 
