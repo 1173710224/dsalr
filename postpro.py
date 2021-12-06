@@ -37,7 +37,8 @@ class Parser():
         return path
 
     def get_metrics(self):
-        print(f"{self.data[ACCU][-1]},{mean(self.data[F1SCORE][-1])},{mean(self.data[RECALL][-1])},{mean(self.data[PRECISION][-1])}")
+        print(
+            f"{self.data[ACCU][-1]},{mean(self.data[F1SCORE][-1])},{mean(self.data[RECALL][-1])},{mean(self.data[PRECISION][-1])}")
         return
 
 
@@ -52,7 +53,7 @@ class LossCollect():
             if opt == RMSPROP:
                 continue
             parser = Parser(opt, self.dataset)
-            losses[opt] = parser.data[LOSS]
+            losses[opt] = parser.data[TRAINLOSS]
             # if opt == DSA:
             #     # losses[opt] = parser.data[LOSS]
             #     for i in range(x_len):
@@ -96,7 +97,7 @@ class SumProcessor():
         x_len = self.epoch
         for opt in OPTIMIZERS:
             data = self.get_data(opt)
-            losses[opt] = data[LOSS]
+            losses[opt] = data[TRAINLOSS]
             print(len(losses[opt]))
             for i in range(x_len):
                 if losses[opt][i] < 0.000001:
@@ -174,7 +175,8 @@ class TrackProcessor():
         x = np.linspace(-1.05, 0.05*8, 300)
         y = np.linspace(-1.1, 1.1, 300)
         X, Y = np.meshgrid(x, y)
-        cset = plt.contourf(X, Y, self.height(X, Y), alpha=0.75, cmap=plt.cm.winter)
+        cset = plt.contourf(X, Y, self.height(
+            X, Y), alpha=0.75, cmap=plt.cm.winter)
         plt.colorbar(cset)
 
         data = self.get_data(opt)

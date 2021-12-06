@@ -7,6 +7,18 @@ from utils import Data
 import torch
 
 
+def get_model(model_name, input_channel, ndim, nclass):
+    if model_name == FMP:
+        model = Fmp(input_channel, ndim, nclass)
+    elif model_name == DNN:
+        model = DeepConv(input_channel, ndim, nclass)
+    elif model_name == RESNET:
+        model = ResNet(num_classes=nclass)
+    if torch.cuda.is_available():
+        model.cuda()
+    return model
+
+
 class BaseMlp(nn.Module):
     def __init__(self, ndim, nclass):
         super(BaseMlp, self).__init__()

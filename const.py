@@ -51,8 +51,15 @@ ACCU = "accu"
 RECALL = "recall"
 PRECISION = "precision"
 F1SCORE = "f1score"
-LOSS = "loss"
+TRAINLOSS = "trainloss"
+VALLOSS = "valloss"
 TRACK = "track"
+INITDICT = {ACCU: [],
+            RECALL: [],
+            PRECISION: [],
+            F1SCORE: [],
+            VALLOSS: [],
+            TRAINLOSS: []}
 
 # models
 FMP = "fmp"
@@ -62,10 +69,10 @@ RESNET = "resnet"
 SUM = "sum"
 
 
-"""hyper-params"""
+# """hyper-params"""
 A = 1
 B = 95
-EPOCHS = 100
+MINIBATCHEPOCHS = 100
 EPOCHSDENSE = 1000
 EPOCHSTEP1 = 15
 EPOCHSTEP2 = 20
