@@ -9,7 +9,7 @@ from optim import FDecreaseDsa
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
-from models import My_loss, Mlp, DeepConv, Fmp, Summor, Tracker, get_model
+from models import Mlp, DeepConv, Fmp, Summor, Tracker, get_model
 from utils import Data
 import utils
 from time import time
@@ -36,7 +36,8 @@ class MiniBatchTrainer():
     def train(self, opt):
         self.model.reset_parameters()
         optimizier = utils.get_opt(opt, self.model)
-        self.record_metrics()
+        lr_schedular = torch.optim.lr_scheduler.MultiStepLR(optimizier,
+                                                            milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
         for i in range(MINIBATCHEPOCHS):
             self.model.train()
             loss_sum = 0
@@ -51,10 +52,9 @@ class MiniBatchTrainer():
                 optimizier.step()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
-            if i % (MINIBATCHEPOCHS / 100) == 0:
-                print("Epoch~{}->loss:{}val:{}\n".format(i+1, loss_sum,
-                                                         round(self.state_dict[ACCU][-1], 4)), end="")
-        print()
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), optimizier.param_groups[0]['lr']))
+            lr_schedular.step()
         return
 
     def fdsa_train(self):
@@ -135,25 +135,23 @@ class MiniBatchTrainer():
         ncorrect = 0
         nsample = 0
         valloss = 0
-        total_example = 0
         preds = []
         Y = []
         for imgs, label in self.test_loader:
             if torch.cuda.is_available():
                 imgs = imgs.cuda()
                 label = label.cuda()
-            preds = self.model(imgs)
-            tmp = preds.detach().cpu().numpy()
+            tmp_pred = self.model(imgs)
+            tmp = tmp_pred.detach().cpu().numpy()
             preds.extend([np.argmax(tmp[i]) for i in range(len(tmp))])
             Y.extend(label.detach().cpu().numpy())
-            ncorrect += torch.sum(preds.max(1)[1].eq(label).double())
+            ncorrect += torch.sum(tmp_pred.max(1)[1].eq(label).double())
             nsample += len(label)
-            loss = F.cross_entropy(preds, label)
+            loss = F.cross_entropy(tmp_pred, label)
             valloss += loss.item() * len(imgs)
-            total_example += len(imgs)
         p, r, f1, _ = metrics(preds, Y)
-        valloss = valloss/total_example
-        return (ncorrect/nsample).cpu().numpy(), p, r, f1, valloss
+        valloss = valloss/nsample
+        return float((ncorrect/nsample).cpu()), p, r, f1, valloss
 
     def record_metrics(self, loss_sum):
         accu, precision, recall, f1_score, valloss = self.val()

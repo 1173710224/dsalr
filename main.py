@@ -1,3 +1,4 @@
+from torch.utils.data import dataset
 from const import *
 from trainers import *
 from models import DeepConv, Fmp, Mlp, ResNet
@@ -10,12 +11,12 @@ class CnnExp():
         self.datasets = LARGE
         pass
 
-    def debug(self, model_name=RESNET, dataset=MNIST, opt=ADAM,
+    def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM,
               pre_train=True):
         trainer = MiniBatchTrainer(model_name, dataset)
         trainer.train(opt)
         trainer.save_metrics(
-            f"result/large/{self.model_name}_{dataset}_{opt}_debug.json")
+            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
 
     def run(self):
@@ -164,10 +165,11 @@ if __name__ == "__main__":
     # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
-    cnn_exp = CnnExp(model_name=RESNET)
+    cnn_exp = CnnExp()
+    cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
     # cnn_exp.run()
     # cnn_exp.debug(MNIST, ADAMAX)
     # cnn_exp.debug(SVHN, DSA)
-    cnn_exp.debug(CIFAR10, DSA, pre_train=False)
+    # cnn_exp.debug(CIFAR10, DSA, pre_train=False)
     # cnn_exp.debug(CIFAR100, DSA)
     pass

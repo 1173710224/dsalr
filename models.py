@@ -13,7 +13,7 @@ def get_model(model_name, input_channel, ndim, nclass):
     elif model_name == DNN:
         model = DeepConv(input_channel, ndim, nclass)
     elif model_name == RESNET:
-        model = ResNet(num_classes=nclass)
+        model = ResNet(input_channel, ndim, nclass)
     if torch.cuda.is_available():
         model.cuda()
     return model
@@ -357,11 +357,10 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block=BasicBlock, num_blocks=[2, 2, 2, 2], num_classes=10):
+    def __init__(self, input_channel, ndim, num_classes, block=BasicBlock, num_blocks=[2, 2, 2, 2]):
         super(ResNet, self).__init__()
         self.in_planes = 64
-
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3,
+        self.conv1 = nn.Conv2d(input_channel, 64, kernel_size=3,
                                stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)

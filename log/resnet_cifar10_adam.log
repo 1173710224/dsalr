@@ -1,0 +1,33 @@
+nohup: ignoring input
+Files already downloaded and verified
+Files already downloaded and verified
+Epoch~1->train_loss:1.436, val_loss:1.1337, val_accu:0.6074
+Epoch~2->train_loss:0.9686, val_loss:0.8774, val_accu:0.6886
+Epoch~3->train_loss:0.7805, val_loss:0.7522, val_accu:0.7431
+Epoch~4->train_loss:0.6377, val_loss:0.7912, val_accu:0.7447
+Epoch~5->train_loss:0.5496, val_loss:0.5421, val_accu:0.8191
+Epoch~6->train_loss:0.4864, val_loss:0.6076, val_accu:0.8004
+Epoch~7->train_loss:0.4351, val_loss:0.4779, val_accu:0.8421
+Epoch~8->train_loss:0.3927, val_loss:0.5662, val_accu:0.8158
+Epoch~9->train_loss:0.3647, val_loss:0.5291, val_accu:0.8307
+Epoch~10->train_loss:0.3304, val_loss:0.439, val_accu:0.857
+Epoch~11->train_loss:0.3072, val_loss:0.4605, val_accu:0.8519
+Epoch~12->train_loss:0.2875, val_loss:0.3702, val_accu:0.8792
+Epoch~13->train_loss:0.2605, val_loss:0.3688, val_accu:0.8816
+Epoch~14->train_loss:0.2452, val_loss:0.4189, val_accu:0.8671
+Epoch~15->train_loss:0.2233, val_loss:0.422, val_accu:0.8714
+Epoch~16->train_loss:0.2097, val_loss:0.3855, val_accu:0.879
+Epoch~17->train_loss:0.1983, val_loss:0.3647, val_accu:0.8905
+Epoch~18->train_loss:0.1822, val_loss:0.3658, val_accu:0.8879
+Epoch~19->train_loss:0.1722, val_loss:0.378, val_accu:0.8907
+Epoch~20->train_loss:0.1589, val_loss:0.3687, val_accu:0.8937
+Epoch~21->train_loss:0.1487, val_loss:0.425, val_accu:0.884
+Epoch~22->train_loss:0.1392, val_loss:0.329, val_accu:0.9024
+Epoch~23->train_loss:0.1301, val_loss:0.3614, val_accu:0.8998
+Epoch~24->train_loss:0.1226, val_loss:0.4474, val_accu:0.8865
+Epoch~25->train_loss:0.1161, val_loss:0.4125, val_accu:0.89
+Epoch~26->train_loss:0.1112, val_loss:0.3781, val_accu:0.9071
+Epoch~27->train_loss:0.1009, val_loss:0.3766, val_accu:0.9038
+Epoch~28->train_loss:0.0977, val_loss:0.3649, val_accu:0.9065
+Epoch~29->train_loss:0.0887, val_loss:0.3466, val_accu:0.911
+Epoch~30->train_loss:0.0851, val_loss:0.3498, val_accu:0.9112
