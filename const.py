@@ -35,6 +35,7 @@ ADAMAX = "adamax"
 ADAMW = "adamw"
 ADAGRAD = "adagrad"
 ADADELTA = "adadelta"
+HD = "hypergradient"
 OPTIMIZERS = [
     ADAM, ADAMW, ADAMAX,
     ADADELTA, ADAGRAD, SGD,
@@ -48,7 +49,8 @@ OPTIMIZERS2LABEL = {
     SGD: "SGD",
     RMSPROP: "RMSPprop",
     MOMENTUM: "Momentum",
-    DSA: "DSA"}
+    DSA: "DSA",
+    HD: "HD"}
 
 # metrics
 ACCU = "accu"

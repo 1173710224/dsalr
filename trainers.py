@@ -36,8 +36,7 @@ class MiniBatchTrainer():
     def train(self, opt):
         self.model.reset_parameters()
         optimizier = utils.get_opt(opt, self.model)
-        lr_schedular = torch.optim.lr_scheduler.MultiStepLR(optimizier,
-                                                            milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
+        lr_schedular = utils.get_scheduler(opt, optimizier)
         for i in range(MINIBATCHEPOCHS):
             self.model.train()
             loss_sum = 0
@@ -54,7 +53,8 @@ class MiniBatchTrainer():
             self.record_metrics(loss_sum)
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}".format(i+1, round(loss_sum, 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), optimizier.param_groups[0]['lr']))
-            lr_schedular.step()
+            if lr_schedular != None:
+                lr_schedular.step()
         return
 
     def fdsa_train(self):
@@ -156,9 +156,9 @@ class MiniBatchTrainer():
     def record_metrics(self, loss_sum):
         accu, precision, recall, f1_score, valloss = self.val()
         self.state_dict[ACCU].append(accu)
-        self.state_dict[PRECISION].append(precision)
-        self.state_dict[RECALL].append(recall)
-        self.state_dict[F1SCORE].append(f1_score)
+        self.state_dict[PRECISION].append(list(precision))
+        self.state_dict[RECALL].append(list(recall))
+        self.state_dict[F1SCORE].append(list(f1_score))
         self.state_dict[VALLOSS].append(valloss)
         self.state_dict[TRAINLOSS].append(loss_sum)
         return

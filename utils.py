@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 import pickle
-from optim import FDecreaseDsa
+from optim import FDecreaseDsa, HypergraDient
 
 
 class Data():
@@ -210,6 +210,8 @@ def get_opt(opt, model):
             model.parameters())
     if opt == DSA:
         return FDecreaseDsa(model.parameters())
+    if opt == HD:
+        return HypergraDient(model.parameters())
     if opt == ADAMW:
         return torch.optim.AdamW(model.parameters())
 
@@ -236,6 +238,13 @@ def get_res(dataset, opt):
     elif dataset in SMALL:
         with open(f"result/small/mlp_{dataset}_{opt}") as f:
             return pickle.load(f)
+    return None
+
+
+def get_scheduler(opt, optimizer):
+    if opt in [SGD, MOMENTUM]:
+        torch.optim.lr_scheduler.MultiStepLR(optimizer,
+                                             milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
     return None
 
 
