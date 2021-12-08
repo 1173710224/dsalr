@@ -1,6 +1,7 @@
-from const import EPSILON
+from const import CONFLICT, EPSILON, LOSSNEWLR, LOSSOLDLR
 from torch.optim.optimizer import Optimizer
 import torch
+import utils
 
 # 小数据集，-9, 0.6, 0.3
 
@@ -59,9 +60,15 @@ class HypergraDient(Optimizer):
                 param.size(), device=param.device))
         super(HypergraDient, self).__init__(
             self.params, defaults=dict(lr=lr_init, meta_lr=meta_lr))
+
+        # self.conflict_record = {
+        #     LOSSNEWLR: [],
+        #     LOSSOLDLR: [],
+        #     CONFLICT: [],
+        # }
         pass
 
-    def lr_autograd(self):
+    def _lr_autograd(self):
         self.tmp_w_grad = []
         for param in self.params:
             if param.grad != None:
@@ -71,15 +78,21 @@ class HypergraDient(Optimizer):
                     param.size(), device=param.device))
         grad = 0
         for i in range(len(self.last_w_grad)):
-            grad += -torch.sum(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+            grad += - \
+                torch.sum(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
         self.last_w_grad = self.tmp_w_grad
         self.lr_grad = grad
         # print(self.last_w_grad[OBSERVW][0])
         # print("param", self.params[OBSERVW][0][0])
         return
 
-    def step(self, closure=None):
-        self.lr_autograd()
+    def step(self, model=None, imgs=None, label=None, closure=None):
+        self._lr_autograd()
+        self.conflict_dict = utils.detect_conflict(model, imgs, label, self.lr,
+                                                   self.lr - self.meta_lr * self.lr_grad)
+        # self.conflict_record[LOSSNEWLR].append(res_dict[LOSSNEWLR])
+        # self.conflict_record[LOSSOLDLR].append(res_dict[LOSSOLDLR])
+        # self.conflict_record[CONFLICT].append(res_dict[CONFLICT])
         # print("alpha grad", self.lr_grad[OBSERVW][0][0])
         self.lr -= self.meta_lr * self.lr_grad
         self.param_groups[0]["lr"] = self.lr

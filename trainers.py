@@ -35,8 +35,8 @@ class MiniBatchTrainer():
 
     def train(self, opt):
         self.model.reset_parameters()
-        optimizier = utils.get_opt(opt, self.model)
-        lr_schedular = utils.get_scheduler(opt, optimizier)
+        self.optimizier = utils.get_opt(opt, self.model)
+        lr_schedular = utils.get_scheduler(opt, self.optimizier)
         for i in range(MINIBATCHEPOCHS):
             self.model.train()
             loss_sum = 0
@@ -46,13 +46,14 @@ class MiniBatchTrainer():
                     label = label.cuda()
                 preds = self.model(imgs)
                 loss = F.cross_entropy(preds, label)
-                optimizier.zero_grad()
+                self.optimizier.zero_grad()
                 loss.backward()
-                optimizier.step()
+                self.optimizier.step()
+                self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
-            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}".format(i+1, round(loss_sum, 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), optimizier.param_groups[0]['lr']))
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr']), sum(self.state_dict[CONFLICT]))
             if lr_schedular != None:
                 lr_schedular.step()
         return
@@ -161,6 +162,18 @@ class MiniBatchTrainer():
         self.state_dict[F1SCORE].append(list(f1_score))
         self.state_dict[VALLOSS].append(valloss)
         self.state_dict[TRAINLOSS].append(loss_sum)
+        return
+
+    def record_conflict(self):
+        try:
+            self.state_dict[LOSSNEWLR].append(
+                self.optimizier.conflict_dict[LOSSNEWLR])
+            self.state_dict[LOSSOLDLR].append(
+                self.optimizier.conflict_dict[LOSSOLDLR])
+            self.state_dict[CONFLICT].append(
+                self.optimizier.conflict_dict[CONFLICT])
+        except:
+            pass
         return
 
     def save_metrics(self, path=""):
