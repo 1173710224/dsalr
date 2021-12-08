@@ -8,6 +8,7 @@ import pandas as pd
 import torch
 import pickle
 from optim import FDecreaseDsa, HypergraDient
+import torch.nn.functional as F
 
 
 class Data():
@@ -246,6 +247,31 @@ def get_scheduler(opt, optimizer):
         torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                              milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
     return None
+
+
+def detect_conflict(model, imgs, label, last_lr, tmp_lr):
+    res_dict = {}
+    # calculate loss when using old learning rate
+    for i, param in enumerate(model.parameters()):
+        param.data -= param.grad * last_lr
+    preds = model(imgs)
+    loss = F.cross_entropy(preds, label)
+    res_dict[LOSSOLDLR] = loss.item()
+    for i, param in enumerate(model.parameters()):
+        param.data += param.grad * last_lr
+    # calculate loss when using new learning rate
+    for i, param in enumerate(model.parameters()):
+        param.data -= param.grad * tmp_lr
+    preds = model(imgs)
+    loss = F.cross_entropy(preds, label)
+    res_dict[LOSSNEWLR] = loss.item()
+    for i, param in enumerate(model.parameters()):
+        param.data += param.grad * tmp_lr
+    if res_dict[LOSSOLDLR] > res_dict[LOSSNEWLR]:
+        res_dict[CONFLICT] = False
+    else:
+        res_dict[CONFLICT] = True
+    return res_dict
 
 
 if __name__ == "__main__":

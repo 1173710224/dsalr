@@ -60,12 +60,20 @@ F1SCORE = "f1score"
 TRAINLOSS = "trainloss"
 VALLOSS = "valloss"
 TRACK = "track"
+LOSSOLDLR = "loss_last_lr"
+LOSSNEWLR = "loss_tmp_lr"
+CONFLICT = "conflict"
 INITDICT = {ACCU: [],
             RECALL: [],
             PRECISION: [],
             F1SCORE: [],
             VALLOSS: [],
-            TRAINLOSS: []}
+            TRAINLOSS: [],
+            TRACK: [],
+            LOSSOLDLR: [],
+            LOSSNEWLR: [],
+            CONFLICT: [],
+            }
 
 # models
 FMP = "fmp"
