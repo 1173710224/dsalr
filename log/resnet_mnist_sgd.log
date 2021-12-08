@@ -1,7 +1,0 @@
-nohup: ignoring input
-Epoch~1->train_loss:0.4332, val_loss:0.2348, val_accu:0.9265, lr:0.1
-Epoch~2->train_loss:0.0998, val_loss:0.1917, val_accu:0.9382, lr:0.1
-Epoch~3->train_loss:0.0771, val_loss:0.358, val_accu:0.8814, lr:0.1
-Epoch~4->train_loss:0.0652, val_loss:0.1463, val_accu:0.953, lr:0.1
-Epoch~5->train_loss:0.0569, val_loss:0.2464, val_accu:0.9001, lr:0.1
-Epoch~6->train_loss:0.0529, val_loss:0.5029, val_accu:0.8435, lr:0.1
