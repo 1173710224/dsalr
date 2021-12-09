@@ -11,12 +11,10 @@ class CnnExp():
         self.datasets = LARGE
         pass
 
-    def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM,
-              pre_train=True):
+    def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM, pre_train=True):
         trainer = MiniBatchTrainer(model_name, dataset)
         trainer.train(opt)
-        trainer.save_metrics(
-            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
+        trainer.save_metrics(f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
 
     def run(self):
@@ -45,9 +43,7 @@ class MlpExp():
         pass
 
     def debug(self, dataset=IRIS, opt=ADAM):
-        train_data, test_data, ndim, nclass = self.data.get(dataset)
-        model = Mlp(ndim, nclass)
-        trainer = Trainer(train_data, test_data, model)
+        trainer = Trainer(dataset)
         trainer.train(opt)
         trainer.save_metrics(f"result/small/mlp_{dataset}_{opt}_debug.json")
         return
@@ -157,9 +153,12 @@ if __name__ == "__main__":
     # # sum_exp.debug(ADAM)
 
     # mlp_exp = MlpExp()
-    # # mlp_exp.debug(IRIS, DSA)
+    # mlp_exp.debug(IRIS, HD)
+    # mlp_exp.debug(WINE, HD)
+    # mlp_exp.debug(CAR, HD)
+    # mlp_exp.debug(AGARICUS, HD)
     # # mlp_exp.run()
-    # mlp_exp.debug_1000epochs(WINE, DSA)
+    # # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
     cnn_exp = CnnExp()

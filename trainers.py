@@ -1,5 +1,6 @@
 import json
 import pickle
+import copy
 import torch
 from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
@@ -30,7 +31,7 @@ class MiniBatchTrainer():
         # init model
         self.model = get_model(model_name, input_channel, ndim, nclass)
         # init state dict
-        self.state_dict = INITDICT
+        self.state_dict = copy.deepcopy(INITDICT)
         pass
 
     def train(self, opt):
@@ -201,6 +202,7 @@ class MiniBatchTrainer():
 
 class Trainer():
     def __init__(self, dataset) -> None:
+        self.dataset = dataset
         train_data, test_data, ndim, nclass = Data().get(dataset)
         self.x = train_data[0]
         self.y = train_data[1]
@@ -210,22 +212,22 @@ class Trainer():
             self.model.cuda()
             self.x = self.x.cuda()
             self.y = self.y.cuda()
-        self.state_dict = INITDICT
+        self.state_dict = copy.deepcopy(INITDICT)
         return
 
     def train(self, opt=ADAM):
         self.model.reset_parameters()
-        self.optimizer = utils.get_opt(opt, self.model)
+        self.optimizer = utils.get_opt(opt, self.model, self.dataset)
         for i in range(EPOCHSDENSE):
             self.model.train()
             preds = self.model(self.x)
             loss = F.cross_entropy(preds, self.y.long())
             self.optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
+            self.optimizer.step(self.model, self.x, self.y.long())
             self.record_metrics(loss.item())
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/len(self.state_dict[CONFLICT]), 4)))
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizer.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/len(self.state_dict[CONFLICT]), 4)))
         return
 
     def fdsa_train(self):
@@ -257,12 +259,12 @@ class Trainer():
         self.model.eval()
         x, y = self.test_data
         preds = self.model(x)
+        loss = F.cross_entropy(preds, y.long())
+        accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
         preds = preds.detach().cpu().numpy()
         preds = [np.argmax(preds[i]) for i in range(len(preds))]
         p, r, f1, _ = metrics(preds, y.cpu().numpy())
-        loss = F.cross_entropy(preds, y)
-        accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
-        return accu.cpu().numpy(), p, r, f1, loss.item()
+        return float(accu.cpu()), p, r, f1, loss.item()
 
     def record_metrics(self, loss):
         accu, precision, recall, f1_score, valloss = self.val()

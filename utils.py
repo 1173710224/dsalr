@@ -204,13 +204,15 @@ def num_image(loader):
     return res
 
 
-def get_opt(opt, model):
+def get_opt(opt, model, dataset=None):
     if opt == ADAM:
         return torch.optim.Adam(
             model.parameters())
     if opt == DSA:
         return FDecreaseDsa(model.parameters())
     if opt == HD:
+        if dataset in SMALL:
+            return HypergraDient(model.parameters(), lr_init=0.1, meta_lr=0.01)
         return HypergraDient(model.parameters())
     if opt == ADAMW:
         return torch.optim.AdamW(model.parameters())
