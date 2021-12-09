@@ -201,7 +201,7 @@ class MiniBatchTrainer():
 
 class Trainer():
     def __init__(self, dataset) -> None:
-        train_data, test_data, ndim, nclass = self.data.get(dataset)
+        train_data, test_data, ndim, nclass = Data().get(dataset)
         self.x = train_data[0]
         self.y = train_data[1]
         self.test_data = test_data
@@ -214,19 +214,18 @@ class Trainer():
         return
 
     def train(self, opt=ADAM):
-        self.reset_metrics()
         self.model.reset_parameters()
-        optimizer = utils.get_opt(opt, self.model)
+        self.optimizer = utils.get_opt(opt, self.model)
         for i in range(EPOCHSDENSE):
             self.model.train()
             preds = self.model(self.x)
             loss = F.cross_entropy(preds, self.y.long())
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
-            accu = self.record_metrics(loss.item())
-            print("Epoch~{}->loss:{}\nval:{},".format(i +
-                  1, loss.item(), accu), end="")
+            self.optimizer.step()
+            self.record_metrics(loss.item())
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/len(self.state_dict[CONFLICT]), 4)))
         return
 
     def fdsa_train(self):
@@ -261,25 +260,28 @@ class Trainer():
         preds = preds.detach().cpu().numpy()
         preds = [np.argmax(preds[i]) for i in range(len(preds))]
         p, r, f1, _ = metrics(preds, y.cpu().numpy())
+        loss = F.cross_entropy(preds, y)
         accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
-        return accu.cpu().numpy(), p, r, f1
+        return accu.cpu().numpy(), p, r, f1, loss.item()
 
     def record_metrics(self, loss):
-        accu, precision, recall, f1_score = self.val()
+        accu, precision, recall, f1_score, valloss = self.val()
         self.state_dict[ACCU].append(accu)
-        self.state_dict[PRECISION].append(precision)
-        self.state_dict[RECALL].append(recall)
-        self.state_dict[F1SCORE].append(f1_score)
+        self.state_dict[PRECISION].append(list(precision))
+        self.state_dict[RECALL].append(list(recall))
+        self.state_dict[F1SCORE].append(list(f1_score))
+        self.state_dict[VALLOSS].append(valloss)
         self.state_dict[TRAINLOSS].append(loss)
+        try:
+            self.state_dict[LOSSNEWLR].append(
+                self.optimizer.conflict_dict[LOSSNEWLR])
+            self.state_dict[LOSSOLDLR].append(
+                self.optimizer.conflict_dict[LOSSOLDLR])
+            self.state_dict[CONFLICT].append(
+                self.optimizer.conflict_dict[CONFLICT])
+        except:
+            pass
         return accu
-
-    def reset_metrics(self):
-        self.state_dict = {ACCU: [],
-                           RECALL: [],
-                           PRECISION: [],
-                           F1SCORE: [],
-                           TRAINLOSS: []}
-        return
 
     def save_metrics(self, path=""):
         with open(path, "w") as f:

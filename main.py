@@ -44,12 +44,12 @@ class MlpExp():
         self.data = Data()
         pass
 
-    def debug(self, model_name=RESNET, dataset=IRIS, opt=ADAM):
+    def debug(self, dataset=IRIS, opt=ADAM):
         train_data, test_data, ndim, nclass = self.data.get(dataset)
         model = Mlp(ndim, nclass)
         trainer = Trainer(train_data, test_data, model)
         trainer.train(opt)
-        trainer.save_metrics(f"result/small/mlp_{dataset}_{opt}")
+        trainer.save_metrics(f"result/small/mlp_{dataset}_{opt}_debug.json")
         return
 
     def run(self):
