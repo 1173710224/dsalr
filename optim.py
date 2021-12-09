@@ -1,7 +1,7 @@
 from const import CONFLICT, EPSILON, LOSSNEWLR, LOSSOLDLR
 from torch.optim.optimizer import Optimizer
 import torch
-import utils
+import torch.nn.functional as F
 
 # 小数据集，-9, 0.6, 0.3
 
@@ -88,7 +88,7 @@ class HypergraDient(Optimizer):
 
     def step(self, model=None, imgs=None, label=None, closure=None):
         self._lr_autograd()
-        self.conflict_dict = utils.detect_conflict(model, imgs, label, self.lr,
+        self.conflict_dict = self._detect_conflict(model, imgs, label, self.lr,
                                                    self.lr - self.meta_lr * self.lr_grad)
         # self.conflict_record[LOSSNEWLR].append(res_dict[LOSSNEWLR])
         # self.conflict_record[LOSSOLDLR].append(res_dict[LOSSOLDLR])
@@ -101,6 +101,30 @@ class HypergraDient(Optimizer):
         for i, param in enumerate(self.params):
             param.data -= param.grad * self.lr
         return
+
+    def _detect_conflict(self, model, imgs, label, last_lr, tmp_lr):
+        res_dict = {}
+        # calculate loss when using old learning rate
+        for i, param in enumerate(model.parameters()):
+            param.data -= param.grad * last_lr
+        preds = model(imgs)
+        loss = F.cross_entropy(preds, label)
+        res_dict[LOSSOLDLR] = loss.item()
+        for i, param in enumerate(model.parameters()):
+            param.data += param.grad * last_lr
+        # calculate loss when using new learning rate
+        for i, param in enumerate(model.parameters()):
+            param.data -= param.grad * tmp_lr
+        preds = model(imgs)
+        loss = F.cross_entropy(preds, label)
+        res_dict[LOSSNEWLR] = loss.item()
+        for i, param in enumerate(model.parameters()):
+            param.data += param.grad * tmp_lr
+        if res_dict[LOSSOLDLR] > res_dict[LOSSNEWLR]:
+            res_dict[CONFLICT] = False
+        else:
+            res_dict[CONFLICT] = True
+        return res_dict
 
 
 # class HD(Optimizer):

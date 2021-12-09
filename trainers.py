@@ -48,12 +48,12 @@ class MiniBatchTrainer():
                 loss = F.cross_entropy(preds, label)
                 self.optimizier.zero_grad()
                 loss.backward()
-                self.optimizier.step()
+                self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
-            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}".format(i+1, round(loss_sum, 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr']), sum(self.state_dict[CONFLICT]))
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/len(self.state_dict[CONFLICT]), 4)))
             if lr_schedular != None:
                 lr_schedular.step()
         return
@@ -200,23 +200,18 @@ class MiniBatchTrainer():
 
 
 class Trainer():
-    def __init__(self, train_data, test_data, model) -> None:
+    def __init__(self, dataset) -> None:
+        train_data, test_data, ndim, nclass = self.data.get(dataset)
         self.x = train_data[0]
         self.y = train_data[1]
         self.test_data = test_data
-        self.model = model
+        self.model = Mlp(ndim, nclass)
         if torch.cuda.is_available():
             self.model.cuda()
             self.x = self.x.cuda()
             self.y = self.y.cuda()
-        else:
-            self.model.cpu()
-        self.state_dict = {ACCU: [],
-                           RECALL: [],
-                           PRECISION: [],
-                           F1SCORE: [],
-                           TRAINLOSS: []}
-        pass
+        self.state_dict = INITDICT
+        return
 
     def train(self, opt=ADAM):
         self.reset_metrics()
@@ -287,8 +282,8 @@ class Trainer():
         return
 
     def save_metrics(self, path=""):
-        with open(path, "wb") as f:
-            pickle.dump(self.state_dict, f)
+        with open(path, "w") as f:
+            json.dump(self.state_dict, f)
         return
 
 
