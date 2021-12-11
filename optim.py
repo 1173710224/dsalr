@@ -62,6 +62,16 @@ class HypergraDient(Optimizer):
             self.params, defaults=dict(lr=lr_init, meta_lr=meta_lr))
         pass
 
+    def step(self, model=None, imgs=None, label=None, closure=None):
+        self._lr_autograd()
+        self.conflict_dict = self._detect_conflict(model, imgs, label, self.lr,
+                                                   self.lr - self.meta_lr * self.lr_grad)
+        self.lr -= self.meta_lr * self.lr_grad
+        self.param_groups[0]["lr"] = self.lr
+        for i, param in enumerate(self.params):
+            param.data -= param.grad * self.lr
+        return
+
     def _lr_autograd(self):
         self.tmp_w_grad = []
         for param in self.params:
@@ -76,16 +86,6 @@ class HypergraDient(Optimizer):
                 torch.sum(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
         self.last_w_grad = self.tmp_w_grad
         self.lr_grad = grad
-        return
-
-    def step(self, model=None, imgs=None, label=None, closure=None):
-        self._lr_autograd()
-        self.conflict_dict = self._detect_conflict(model, imgs, label, self.lr,
-                                                   self.lr - self.meta_lr * self.lr_grad)
-        self.lr -= self.meta_lr * self.lr_grad
-        self.param_groups[0]["lr"] = self.lr
-        for i, param in enumerate(self.params):
-            param.data -= param.grad * self.lr
         return
 
     def _detect_conflict(self, model, imgs, label, last_lr, tmp_lr):
@@ -113,53 +113,91 @@ class HypergraDient(Optimizer):
         return res_dict
 
 
-# class HD(Optimizer):
-#     def __init__(self, params, lr_init=-8, meta_lr=0.5) -> None:
-#         self.params = list(params)
-#         self.meta_lr = meta_lr
-#         self.last_w_grad = []
-#         self.tmp_w_grad = None
-#         self.lr_matrix = []
-#         self.lr_grad = None
-#         for param in self.params:
-#             self.last_w_grad.append(torch.zeros(
-#                 param.size(), device=param.device))
-#             self.lr_matrix.append(torch.ones(
-#                 param.size(), device=param.device) * lr_init)
-#         super(HD, self).__init__(
-#             self.params, defaults=dict(lr=lr_init, meta_lr=meta_lr))
-#         pass
+class DiffSelfAdapt(Optimizer):
+    """
+    hypergradient + parameter_specific + direction
+    """
 
-#     def lr_autograd(self):
-#         self.lr_grad = []
-#         self.tmp_w_grad = []
-#         for param in self.params:
-#             if param.grad != None:
-#                 self.tmp_w_grad.append(param.grad.clone())
-#             else:
-#                 self.tmp_w_grad.append(torch.zeros(
-#                     param.size(), device=param.device))
-#         for i in range(len(self.last_w_grad)):
-#             grad = -torch.mul(self.last_w_grad[i], self.tmp_w_grad[i])
-#             grad = torch.mul(grad, 1/(grad.abs() + EPSILON))
-#             self.lr_grad.append(grad)
-#         self.last_w_grad = self.tmp_w_grad
-#         # print(self.last_w_grad[OBSERVW][0])
-#         # print("param", self.params[OBSERVW][0][0])
-#         return
+    def __init__(self, params, lr_init=0.001, meta_lr=0.0001) -> None:
+        self.params = list(params)
+        self.last_w_grad = None
+        self.tmp_w_grad = None
+        self.lr_matrix = []
+        self.lr_grad = None
+        self.meta_lr = meta_lr
+        for param in self.params:
+            self.lr_matrix.append(torch.ones(
+                param.size(), device=param.device) * lr_init)
+        super(DiffSelfAdapt, self).__init__(
+            self.params, defaults=dict(lr=lr_init, meta_lr=meta_lr))
+        pass
 
-#     def step(self, closure=None):
-#         self.lr_autograd()
-#         # print("alpha grad", self.lr_grad[OBSERVW][0][0])
-#         for i in range(len(self.lr_matrix)):
-#             self.lr_matrix[i] = self.lr_matrix[i] - \
-#                 self.meta_lr * self.lr_grad[i]
-#         # print("alpha", self.lr_matrix[OBSERVW][0][0])
-#         # print("lr", torch.pow(2, self.lr_matrix[OBSERVW])[0][0])
-#         for i, param in enumerate(self.params):
-#             param.data -= torch.mul(param.grad * (1/(param.grad.abs() +
-#                                     EPSILON)), torch.pow(2, self.lr_matrix[i]))
-#         return
+    def step(self, model=None, imgs=None, label=None, closure=None):
+        self._w_step()
+        preds = model(imgs)
+        loss = F.cross_entropy(preds, label)
+        self.zero_grad()
+        loss.backward()
+        self._lr_w_step()
+        # detect conflict
+        preds = model(imgs)
+        newloss = F.cross_entropy(preds, label)
+        self.conflict_dict = {}
+        self.conflict_dict[LOSSOLDLR] = loss.item()
+        self.conflict_dict[LOSSNEWLR] = newloss.item()
+        if self.conflict_dict[LOSSOLDLR] >= self.conflict_dict[LOSSNEWLR]:
+            self.conflict_dict[CONFLICT] = False
+        else:
+            self.conflict_dict[CONFLICT] = True
+            # self.meta_lr *= 0.9
+        # avg_lr
+        lr_sum = 0
+        lr_num = 0
+        for lrs in self.lr_matrix:
+            lr_sum += lrs.sum().item()
+            lr_num += lrs.numel()
+        self.param_groups[0]["lr"] = (round(lr_sum/lr_num, 5), round(self.meta_lr, 7))
+        return
+
+    def _w_step(self):
+        # collect last_w_grad
+        self.last_w_grad = []
+        for param in self.params:
+            if param.grad != None:
+                self.last_w_grad.append(param.grad.clone())
+            else:
+                self.last_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        # make update for parameter
+        for i, param in enumerate(self.params):
+            param.data -= torch.mul(self._d(param.grad), self.lr_matrix[i])
+        return
+
+    def _lr_w_step(self):
+        # collect tmp_w_grad
+        self.tmp_w_grad = []
+        for param in self.params:
+            if param.grad != None:
+                self.tmp_w_grad.append(param.grad.clone())
+            else:
+                self.tmp_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        # rollback parameter
+        for i, param in enumerate(self.params):
+            param.data += torch.mul(self._d(self.last_w_grad[i]), self.lr_matrix[i])
+        # update learning rate
+        for i in range(len(self.last_w_grad)):
+            self.lr_matrix[i] = self.lr_matrix[i] - self.meta_lr * self._d(-torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        # update parameter
+        for i, param in enumerate(self.params):
+            param.data -= torch.mul(self._d(self.last_w_grad[i]), self.lr_matrix[i])
+        # clean grad
+        self.last_w_grad.clear()
+        self.tmp_w_grad.clear()
+        return
+
+    def _d(self, tensor):
+        return tensor * (1/(tensor.abs() + EPSILON))
 
 
 # OBSERVW = 0

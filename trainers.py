@@ -38,7 +38,13 @@ class MiniBatchTrainer():
         self.model.reset_parameters()
         self.optimizier = utils.get_opt(opt, self.model)
         lr_schedular = utils.get_scheduler(opt, self.optimizier)
-        for i in range(MINIBATCHEPOCHS):
+        epochs = MINIBATCHEPOCHS
+        try:
+            assert opt == DSA
+            epochs = int(epochs/2)
+        except:
+            pass
+        for i in range(epochs):
             self.model.train()
             loss_sum = 0
             for imgs, label in self.train_loader:
@@ -49,87 +55,17 @@ class MiniBatchTrainer():
                 loss = F.cross_entropy(preds, label)
                 self.optimizier.zero_grad()
                 loss.backward()
+                # print("base loss:{}".format(round(loss.item(), 5)), end=", ")
                 self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss_sum, 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/len(self.state_dict[CONFLICT]), 4)))
-            if lr_schedular != None:
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4)))
+            try:
                 lr_schedular.step()
-        return
-
-    def fdsa_train(self):
-        self.reset_metrics()
-        self.mode.reset_parameters()
-
-        self.optimizier_opt = Adamax(self.model.parameters())
-        for i in range(EPOCHSTEP1):
-            self.unit_minibatch_train_opt(i)
-        print()
-        self.optimizier_opt = None
-        self.optimizier_dsa = FDecreaseDsa(self.model.parameters())
-        for i in range(EPOCHSTEP2):
-            self.unit_batch_train_dsa(i)
-        print()
-        return
-
-    def unit_minibatch_train_opt(self, epoch=0):
-        self.model.train()
-        loss_sum = 0
-        for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            else:
-                imgs = imgs.cpu()
-                label = label.cpu()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label)
-            self.optimizier_opt.zero_grad()
-            loss.backward()
-            self.optimizier_opt.step()
-            loss_sum += loss.item() * len(imgs)/self.num_image
-        accu = self.record_metrics(loss_sum)
-        print("Minibatch~Epoch~{}->loss:{}\nval:{},".format(epoch +
-              1, loss_sum, accu), end="")
-        return
-
-    def unit_batch_train_dsa(self, epoch=0):
-        self.optimizier_dsa.zero_grad()
-        loss_sum = 0
-        for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            else:
-                imgs = imgs.cpu()
-                label = label.cpu()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
-            loss.backward()
-            loss_sum += loss.item()
-        self.optimizier_dsa.w_step_1()
-
-        self.optimizier_dsa.zero_grad()
-        loss_sum = 0
-        for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            else:
-                imgs = imgs.cpu()
-                label = label.cpu()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label) * len(imgs) / self.num_image
-            loss.backward()
-            loss_sum += loss.item()
-        self.optimizier_dsa.lr_step()
-        self.optimizier_dsa.w_step_2()
-
-        accu = self.record_metrics(loss_sum)
-        print("Batch~Epoch~{}->loss:{}\nval:{},".format(epoch +
-              1, loss_sum, accu), end="")
+            except:
+                pass
         return
 
     def val(self):
@@ -182,14 +118,6 @@ class MiniBatchTrainer():
             json.dump(self.state_dict, f)
         return
 
-    def reset_metrics(self):
-        self.state_dict = {ACCU: [],
-                           RECALL: [],
-                           PRECISION: [],
-                           F1SCORE: [],
-                           TRAINLOSS: []}
-        return
-
     def save_model(self, path="model/tmp"):
         torch.save(self.model.state_dict(), path)
         return
@@ -228,31 +156,6 @@ class Trainer():
             self.record_metrics(loss.item())
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizer.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/len(self.state_dict[CONFLICT]), 4)))
-        return
-
-    def fdsa_train(self):
-        self.reset_metrics()
-        self.model.reset_parameters()
-        optimizer = FDecreaseDsa(self.model.parameters())
-        for i in range(EPOCHSDENSE):
-            self.model.train()
-
-            preds = self.model(self.x)
-            loss = F.cross_entropy(preds, self.y.long())
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.w_step_1()
-
-            preds = self.model(self.x)
-            loss = F.cross_entropy(preds, self.y.long())
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.lr_step()
-            optimizer.w_step_2()
-
-            accu = self.record_metrics()
-            print("Epoch~{}->loss:{}\nval:{},".format(i +
-                  1, loss.item(), accu), end="")
         return
 
     def val(self):
