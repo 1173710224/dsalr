@@ -209,7 +209,7 @@ def get_opt(opt, model, dataset=None):
         return torch.optim.Adam(
             model.parameters())
     if opt == DSA:
-        return DiffSelfAdapt(model.parameters())
+        return DiffSelfAdapt(model.parameters(), lr_init=0.1, meta_lr=0.01)
     if opt == HD:
         if dataset in SMALL:
             return HypergraDient(model.parameters(), lr_init=0.1, meta_lr=0.01)
@@ -245,8 +245,8 @@ def get_res(dataset, opt):
 
 def get_scheduler(opt, optimizer):
     if opt in [SGD, MOMENTUM]:
-        torch.optim.lr_scheduler.MultiStepLR(optimizer,
-                                             milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(optimizer,
+                                                    milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
     return None
 
 

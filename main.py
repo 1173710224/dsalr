@@ -152,8 +152,8 @@ if __name__ == "__main__":
     # # sum_exp.debug(SGD)
     # # sum_exp.debug(ADAM)
 
-    # mlp_exp = MlpExp()
-    # mlp_exp.debug(WINE, MOMENTUM)
+    mlp_exp = MlpExp()
+    mlp_exp.debug(WINE, DSA)
     # mlp_exp.debug(WINE, HD)
     # mlp_exp.debug(CAR, HD)
     # mlp_exp.debug(AGARICUS, HD)
@@ -161,8 +161,8 @@ if __name__ == "__main__":
     # # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
-    cnn_exp = CnnExp()
-    cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
+    # cnn_exp = CnnExp()
+    # cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
     # cnn_exp.debug(dataset=SVHN, opt=HD)
     # cnn_exp.debug(dataset=CIFAR10, opt=HD)
     # cnn_exp.debug(dataset=CIFAR100, opt=HD)

@@ -149,7 +149,7 @@ class DiffSelfAdapt(Optimizer):
             self.conflict_dict[CONFLICT] = False
         else:
             self.conflict_dict[CONFLICT] = True
-            self.meta_lr *= 0.9
+            # self.meta_lr *= 0.9
             # for i in range(len(self.lr_matrix)):
             #     self.lr_matrix[i] *= 0.95
         # avg_lr
@@ -188,8 +188,16 @@ class DiffSelfAdapt(Optimizer):
         for i, param in enumerate(self.params):
             param.data += torch.mul(self._w_d(self.last_w_grad[i]), self.lr_matrix[i])
         # update learning rate
+        # parameter specific
         for i in range(len(self.last_w_grad)):
             self.lr_matrix[i] = self.lr_matrix[i] - self.meta_lr * self._d(-torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        # global learning rate
+        # grad = 0
+        # for i in range(len(self.last_w_grad)):
+        #     grad += - \
+        #         torch.sum(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        # for i in range(len(self.last_w_grad)):
+        #     self.lr_matrix[i] -= grad * self.meta_lr
         # update parameter
         for i, param in enumerate(self.params):
             param.data -= torch.mul(self._w_d(self.last_w_grad[i]), self.lr_matrix[i])
@@ -200,10 +208,11 @@ class DiffSelfAdapt(Optimizer):
 
     def _d(self, tensor):
         return tensor * (1/(tensor.abs() + EPSILON))
+        # return tensor
 
     def _w_d(self, tensor):
-        # return tensor
-        return tensor * (1/(tensor.abs() + EPSILON))
+        return tensor
+        # return tensor * (1/(tensor.abs() + EPSILON))
 
 
 # OBSERVW = 0
