@@ -1,3 +1,4 @@
+from math import exp
 from const import CONFLICT, EPSILON, LOSSNEWLR, LOSSOLDLR
 from torch.optim.optimizer import Optimizer
 import torch
@@ -158,7 +159,8 @@ class DiffSelfAdapt(Optimizer):
         for lrs in self.lr_matrix:
             lr_sum += lrs.sum().item()
             lr_num += lrs.numel()
-        self.param_groups[0]["lr"] = (round(lr_sum/lr_num, 5), round(self.meta_lr, 7))
+        self.param_groups[0]["lr"] = (
+            round(0.1/(1 + exp(-lr_sum/lr_num)), 10), round(self.meta_lr, 7))
         return
 
     def _w_step(self):
@@ -172,7 +174,8 @@ class DiffSelfAdapt(Optimizer):
                     param.size(), device=param.device))
         # make update for parameter
         for i, param in enumerate(self.params):
-            param.data -= torch.mul(self._w_d(param.grad), self.lr_matrix[i])
+            param.data -= torch.mul(self._w_d(param.grad),
+                                    self._step_size(self.lr_matrix[i]))
         return
 
     def _lr_w_step(self):
@@ -186,21 +189,35 @@ class DiffSelfAdapt(Optimizer):
                     param.size(), device=param.device))
         # rollback parameter
         for i, param in enumerate(self.params):
-            param.data += torch.mul(self._w_d(self.last_w_grad[i]), self.lr_matrix[i])
+            param.data += torch.mul(
+                self._w_d(self.last_w_grad[i]), self._step_size(self.lr_matrix[i]))
         # update learning rate
-        # parameter specific
-        for i in range(len(self.last_w_grad)):
-            self.lr_matrix[i] = self.lr_matrix[i] - self.meta_lr * self._d(-torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
-        # global learning rate
+        # # single learning rate
         # grad = 0
+        # max_grad = 0
         # for i in range(len(self.last_w_grad)):
-        #     grad += - \
-        #         torch.sum(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        #     grad += torch.sum(
+        #         torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        #     max_grad = max(max_grad, torch.mul(
+        #         self.last_w_grad[i], self.tmp_w_grad[i]).max().abs())
+        # print("grad: {}, max grad: {}".format(grad, max_grad))
         # for i in range(len(self.last_w_grad)):
-        #     self.lr_matrix[i] -= grad * self.meta_lr
+        #     self.lr_matrix[i] += self._d(grad) * self.meta_lr
+
+        # # parameter specific
+        # for i in range(len(self.last_w_grad)):
+        #     self.lr_matrix[i] = self.lr_matrix[i] + self.meta_lr * \
+        #         torch.mul(self.last_w_grad[i], self.tmp_w_grad[i])
+
+        # parameter specific learning rate and direction
+        for i in range(len(self.last_w_grad)):
+            self.lr_matrix[i] += self.meta_lr * \
+                self._d(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+
         # update parameter
         for i, param in enumerate(self.params):
-            param.data -= torch.mul(self._w_d(self.last_w_grad[i]), self.lr_matrix[i])
+            param.data -= torch.mul(
+                self._w_d(self.last_w_grad[i]), self._zero_step_size(self.lr_matrix[i]))
         # clean grad
         self.last_w_grad.clear()
         self.tmp_w_grad.clear()
@@ -211,8 +228,15 @@ class DiffSelfAdapt(Optimizer):
         # return tensor
 
     def _w_d(self, tensor):
-        return tensor
-        # return tensor * (1/(tensor.abs() + EPSILON))
+        # return tensor
+        return tensor * (1/(tensor.abs() + EPSILON))
+
+    def _step_size(self, tensor):
+        return torch.sigmoid(tensor) * 0.1
+
+    def _zero_step_size(self, tensor):
+        tensor = torch.sigmoid(tensor) * 0.1
+        return torch.mul(tensor, tensor > 0.00001)
 
 
 # OBSERVW = 0
