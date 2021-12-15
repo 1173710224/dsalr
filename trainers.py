@@ -150,22 +150,35 @@ class Trainer():
         for i in range(EPOCHSDENSE):
             self.model.train()
             preds = self.model(self.x)
-            loss = F.cross_entropy(preds, self.y.long())
+            # loss = F.cross_entropy(preds, self.y.long())
+            loss = F.mse_loss(torch.softmax(preds, 1),
+                              F.one_hot(self.y.long()).float())
             self.optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
-            # self.optimizer.step(self.model, self.x, self.y.long())
+            # self.optimizer.step()
+            self.optimizer.step(self.model, self.x, self.y.long())
             self.record_metrics(loss.item())
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizer.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4)))
 
         return
 
+    def _collect_wrong_cases(self, preds, y):
+        flag = preds.max(1)[1].eq(y).double()
+        print("wrong cases: ", end=",")
+        for index in range(len(flag)):
+            if flag[index] == 0:
+                print(int(y[index].long()), end=",")
+        print()
+        return
+
     def val(self):
         self.model.eval()
         x, y = self.test_data
         preds = self.model(x)
-        loss = F.cross_entropy(preds, y.long())
+        # self._collect_wrong_cases(preds, y)
+        # loss = F.cross_entropy(preds, y.long())
+        loss = F.mse_loss(torch.softmax(preds, 1), F.one_hot(y.long()).float())
         accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
         preds = preds.detach().cpu().numpy()
         preds = [np.argmax(preds[i]) for i in range(len(preds))]

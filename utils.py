@@ -128,8 +128,22 @@ class Data():
         dataset = torch.Tensor(dataset)
         if torch.cuda.is_available():
             dataset = dataset.cuda()
-        x_train, x_test, y_train, y_test = train_test_split(
-            dataset[:, :-1], dataset[:, -1:].reshape(len(dataset)), test_size=0.2, random_state=0)
+        counter = {0: 0, 1: 0, 2: 0}
+        train_index = []
+        test_index = []
+        for index in range(len(dataset)):
+            item = dataset[index]
+            if counter[int(item[-1])] < 40:
+                counter[int(item[-1])] += 1
+                train_index.append(index)
+            else:
+                test_index.append(index)
+        train_data = dataset.index_select(0, torch.tensor(train_index))
+        test_data = dataset.index_select(0, torch.tensor(test_index))
+        x_train = train_data[:, :-1]
+        y_train = train_data[:, -1]
+        x_test = test_data[:, :-1]
+        y_test = test_data[:, -1]
         return (x_train, y_train), (x_test, y_test), 13, 3
 
     def load_car(self):
@@ -142,6 +156,22 @@ class Data():
         dataset = torch.Tensor(dataset)
         if torch.cuda.is_available():
             dataset = dataset.cuda()
+        # counter = {0: 0, 1: 0, 2: 0, 3: 0}
+        # train_index = []
+        # test_index = []
+        # for index in range(len(dataset)):
+        #     item = dataset[index]
+        #     if counter[int(item[-1])] < 50:
+        #         counter[int(item[-1])] += 1
+        #         train_index.append(index)
+        #     else:
+        #         test_index.append(index)
+        # train_data = dataset.index_select(0, torch.tensor(train_index))
+        # test_data = dataset.index_select(0, torch.tensor(test_index))
+        # x_train = train_data[:, :-1]
+        # y_train = train_data[:, -1]
+        # x_test = test_data[:, :-1]
+        # y_test = test_data[:, -1]
         x_train, x_test, y_train, y_test = train_test_split(
             dataset[:, :-1], dataset[:, -1:].reshape(len(dataset)), test_size=0.2, random_state=0)
         return (x_train, y_train), (x_test, y_test), 21, 4

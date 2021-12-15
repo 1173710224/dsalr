@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # # sum_exp.debug(ADAM)
 
     mlp_exp = MlpExp()
-    mlp_exp.debug(WINE, ADAM)
+    mlp_exp.debug(CAR, DSA)
     # mlp_exp.debug(WINE, HD)
     # mlp_exp.debug(CAR, HD)
     # mlp_exp.debug(AGARICUS, HD)
