@@ -144,6 +144,7 @@ class DiffSelfAdapt(Optimizer):
         self._lr_w_step()
         # detect conflict
         preds = model(imgs)
+        # newloss = F.cross_entropy(preds, label)
         newloss = F.mse_loss(torch.softmax(preds, 1),
                              F.one_hot(label).float())
         self.conflict_dict = {}
@@ -239,8 +240,8 @@ class DiffSelfAdapt(Optimizer):
 
     def _zero_step_size(self, tensor):
         tensor = torch.sigmoid(tensor) * 0.1
-        return torch.mul(tensor, tensor > 0.0001)
-        # return tensor
+        # return torch.mul(tensor, tensor > 0.0001)
+        return tensor
 
 
 # OBSERVW = 0

@@ -153,6 +153,8 @@ class Trainer():
             # loss = F.cross_entropy(preds, self.y.long())
             loss = F.mse_loss(torch.softmax(preds, 1),
                               F.one_hot(self.y.long()).float())
+            if loss.item() < 0.001:
+                break
             self.optimizer.zero_grad()
             loss.backward()
             # self.optimizer.step()
@@ -176,7 +178,7 @@ class Trainer():
         self.model.eval()
         x, y = self.test_data
         preds = self.model(x)
-        # self._collect_wrong_cases(preds, y)
+        self._collect_wrong_cases(preds, y)
         # loss = F.cross_entropy(preds, y.long())
         loss = F.mse_loss(torch.softmax(preds, 1), F.one_hot(y.long()).float())
         accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
