@@ -14,7 +14,8 @@ class CnnExp():
     def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM, pre_train=True):
         trainer = MiniBatchTrainer(model_name, dataset)
         trainer.train(opt)
-        trainer.save_metrics(f"result/large/{model_name}_{dataset}_{opt}_debug.json")
+        trainer.save_metrics(
+            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
 
     def run(self):
@@ -153,7 +154,7 @@ if __name__ == "__main__":
     # # sum_exp.debug(ADAM)
 
     mlp_exp = MlpExp()
-    mlp_exp.debug(WINE, DSA)
+    mlp_exp.debug(WINE, ADAM)
     # mlp_exp.debug(WINE, HD)
     # mlp_exp.debug(CAR, HD)
     # mlp_exp.debug(AGARICUS, HD)
