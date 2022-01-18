@@ -236,7 +236,8 @@ class DiffSelfAdapt(Optimizer):
 
     def _zero_step_size(self, tensor):
         tensor = torch.sigmoid(tensor) * 0.1
-        return torch.mul(tensor, tensor > 0.00001)
+        return tensor
+        # return torch.mul(tensor, tensor > 0.00001)
 
 
 # OBSERVW = 0
