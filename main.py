@@ -163,11 +163,17 @@ if __name__ == "__main__":
     # # mlp_exp.run_1000epochs()
 
     cnn_exp = CnnExp()
-    cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=MOMENTUM)
-    cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=ADAM)
-
-    # cnn_exp = CnnExp()
+    # print("resnet momentum")
+    # cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
+    # print("fmp momentum")
+    # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=MOMENTUM)
+    # print("fmp adam")
+    # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=ADAM)
+    # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
+    print("resnet hd")
+    cnn_exp.debug(dataset=MNIST, opt=DSA)
+
     # cnn_exp.debug(dataset=SVHN, opt=ADAM)
     # cnn_exp.debug(dataset=CIFAR10, opt=ADAM)
     # cnn_exp.debug(dataset=CIFAR100, opt=ADAM)

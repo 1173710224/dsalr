@@ -240,6 +240,16 @@ class DiffSelfAdapt(Optimizer):
         # return torch.mul(tensor, tensor > 0.00001)
 
 
+class MiniDiffSelfAdapt(DiffSelfAdapt):
+    def __init__(self, params, lr_init=0.001, meta_lr=0.0001) -> None:
+        super().__init__(params, lr_init, meta_lr)
+
+    def step(self, closure=None):
+        for i, param in enumerate(self.params):
+            param.data -= torch.mul(self._w_d(param.grad),
+                                    self._step_size(self.lr_matrix[i]))
+        return
+
 # OBSERVW = 0
 
 # # best lr for mlp is -7, 0.7
