@@ -47,6 +47,7 @@ class MiniBatchTrainer():
         for i in range(epochs):
             self.model.train()
             loss_sum = 0
+            begin = time()
             for imgs, label in self.train_loader:
                 if torch.cuda.is_available():
                     imgs = imgs.cuda()
@@ -56,13 +57,13 @@ class MiniBatchTrainer():
                 self.optimizier.zero_grad()
                 loss.backward()
                 # print("base loss:{}".format(round(loss.item(), 5)), end=", ")
-                self.optimizier.step()
-                # self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                # self.optimizier.step()
+                self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
-            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss_sum, 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4)))
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
             try:
                 lr_schedular.step()
             except:
@@ -126,6 +127,15 @@ class MiniBatchTrainer():
     def load_model(self, path="model/tmp"):
         state_dict = torch.load(path)
         self.model.load_state_dict(state_dict)
+        return
+
+
+class DsaMiniBatchTrainer(MiniBatchTrainer):
+    def __init__(self, model_name, dataset) -> None:
+        super().__init__(model_name, dataset)
+
+    def train(self):
+
         return
 
 

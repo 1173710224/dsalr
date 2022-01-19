@@ -240,9 +240,24 @@ class DiffSelfAdapt(Optimizer):
 
     def _zero_step_size(self, tensor):
         tensor = torch.sigmoid(tensor) * 0.1
+<<<<<<< HEAD
         # return torch.mul(tensor, tensor > 0.0001)
         return tensor
+=======
+        return tensor
+        # return torch.mul(tensor, tensor > 0.00001)
+>>>>>>> d3c861981aa8a6790d51c4deb31a6a139c54c5b1
 
+
+class MiniDiffSelfAdapt(DiffSelfAdapt):
+    def __init__(self, params, lr_init=0.001, meta_lr=0.0001) -> None:
+        super().__init__(params, lr_init, meta_lr)
+
+    def step(self, closure=None):
+        for i, param in enumerate(self.params):
+            param.data -= torch.mul(self._w_d(param.grad),
+                                    self._step_size(self.lr_matrix[i]))
+        return
 
 # OBSERVW = 0
 

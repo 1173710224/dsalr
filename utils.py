@@ -72,7 +72,7 @@ class Data():
 
     def load_mnist(self):
         train_transform = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
+            transforms.RandomCrop(28, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(MNISTMEAN, MNISTSTD),
@@ -255,7 +255,7 @@ def get_opt(opt, model, dataset=None):
         return torch.optim.Adadelta(model.parameters())
 
     if opt == SGD:
-        return torch.optim.SGD(model.parameters(), lr=0.01)
+        return torch.optim.SGD(model.parameters(), lr=0.1)
     if opt == RMSPROP:
         return torch.optim.RMSprop(model.parameters())
     if opt == MOMENTUM:
@@ -274,7 +274,7 @@ def get_res(dataset, opt):
 
 
 def get_scheduler(opt, optimizer):
-    if opt in [SGD, MOMENTUM]:
+    if opt in [SGD, MOMENTUM, ADAM]:
         return torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                     milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
     return None
