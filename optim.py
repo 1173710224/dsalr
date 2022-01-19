@@ -3,6 +3,9 @@ from const import CONFLICT, EPSILON, LOSSNEWLR, LOSSOLDLR
 from torch.optim.optimizer import Optimizer
 import torch
 import torch.nn.functional as F
+from models import ResNet
+from torch import Tensor
+from torch.utils.data import DataLoader
 
 # 小数据集，-9, 0.6, 0.3
 
@@ -136,13 +139,17 @@ class DiffSelfAdapt(Optimizer):
     def step(self, model=None, imgs=None, label=None, closure=None):
         self._w_step()
         preds = model(imgs)
-        loss = F.cross_entropy(preds, label)
+        # loss = F.cross_entropy(preds, label)
+        loss = F.mse_loss(torch.softmax(preds, 1),
+                          F.one_hot(label).float())
         self.zero_grad()
         loss.backward()
         self._lr_w_step()
         # detect conflict
         preds = model(imgs)
-        newloss = F.cross_entropy(preds, label)
+        # newloss = F.cross_entropy(preds, label)
+        newloss = F.mse_loss(torch.softmax(preds, 1),
+                             F.one_hot(label).float())
         self.conflict_dict = {}
         self.conflict_dict[LOSSOLDLR] = loss.item()
         self.conflict_dict[LOSSNEWLR] = newloss.item()
@@ -252,8 +259,67 @@ class MiniDiffSelfAdapt(DiffSelfAdapt):
 
 
 class DsaScheduler():
-    def __init__(self) -> None:
+    def __init__(self, optimizer: MiniDiffSelfAdapt, model: ResNet, train_loader: DataLoader) -> None:
+        self.last_w_grad = None
+        self.tmp_w_grad = None
+        self.optimizer = optimizer
+        self.model = model
+        self.train_loader = train_loader
         pass
+
+    def step(self):
+        # collect old grad
+        self.optimizer.zero_grad()
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * int(len(label))
+            loss.backward()
+        self.last_w_grad = []
+        for param in self.optimizer.params:
+            if param.grad != None:
+                self.last_w_grad.append(param.grad.clone())
+            else:
+                self.last_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        for i, param in enumerate(self.optimizer.params):
+            param.data -=\
+                torch.mul(self.optimizer._w_d(param.grad),
+                          self.optimizer._step_size(self.optimizer.lr_matrix[i]))
+        # collect new grad
+        self.optimizer.zero_grad()
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * int(len(label))
+            loss.backward()
+        self.tmp_w_grad = []
+        for param in self.optimizer.params:
+            if param.grad != None:
+                self.tmp_w_grad.append(param.grad.clone())
+            else:
+                self.tmp_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        self.optimizer.zero_grad()
+        # roll back grad
+        for i, param in enumerate(self.optimizer.params):
+            param.data +=\
+                torch.mul(self.optimizer._w_d(self.last_w_grad[i]),
+                          self.optimizer._step_size(self.optimizer.lr_matrix[i]))
+        # update learning rate
+        for i in range(len(self.last_w_grad)):
+            self.optimizer.lr_matrix[i] += self.optimizer.meta_lr * \
+                self.optimizer._d(
+                    torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        # clean grad
+        self.last_w_grad.clear()
+        self.tmp_w_grad.clear()
+        return
+
 
 # OBSERVW = 0
 
