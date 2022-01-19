@@ -130,7 +130,7 @@ class DiffSelfAdapt(Optimizer):
             self.lr_matrix.append(torch.ones(
                 param.size(), device=param.device) * lr_init)
         super(DiffSelfAdapt, self).__init__(
-            self.params, defaults=dict(lr=lr_init, meta_lr=meta_lr))
+            self.params, defaults=dict(lr=round(0.1/(1 + exp(lr_init)), 10), meta_lr=meta_lr))
         pass
 
     def step(self, model=None, imgs=None, label=None, closure=None):
@@ -315,6 +315,14 @@ class DsaScheduler():
         # clean grad
         self.last_w_grad.clear()
         self.tmp_w_grad.clear()
+        # avg_lr
+        lr_sum = 0
+        lr_num = 0
+        for lrs in self.optimizer.lr_matrix:
+            lr_sum += lrs.sum().item()
+            lr_num += lrs.numel()
+        self.optimizer.param_groups[0]["lr"] = (
+            round(0.1/(1 + exp(-lr_sum/lr_num)), 10), round(self.optimizer.meta_lr, 7))
         return
 
 
