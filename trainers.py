@@ -6,7 +6,7 @@ from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import FDecreaseDsa
+from optim import FDecreaseDsa, MiniDiffSelfAdapt
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
@@ -134,8 +134,10 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
     def __init__(self, model_name, dataset) -> None:
         super().__init__(model_name, dataset)
 
-    def train(self):
-
+    def train(self, opt):
+        assert opt == DSA
+        self.model.reset_parameters()
+        self.optimizier = MiniDiffSelfAdapt(self.model.parameters(), lr_init=-3, meta_lr=0.1)
         return
 
 
