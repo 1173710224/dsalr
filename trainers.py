@@ -6,7 +6,7 @@ from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import FDecreaseDsa
+from optim import FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
@@ -134,8 +134,33 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
     def __init__(self, model_name, dataset) -> None:
         super().__init__(model_name, dataset)
 
-    def train(self):
-
+    def train(self, opt):
+        assert opt == DSA
+        self.model.reset_parameters()
+        self.optimizier = MiniDiffSelfAdapt(
+            self.model.parameters(), lr_init=-3, meta_lr=0.1)
+        self.scheduler = DsaScheduler(
+            self.optimizier, self.model, self.train_loader)
+        epochs = MINIBATCHEPOCHS / 2
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            begin = time()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizier.zero_grad()
+                loss.backward()
+                self.optimizier.step()
+                self.record_conflict()
+                loss_sum += loss.item() * len(imgs)/self.num_image
+            self.record_metrics(loss_sum)
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+            self.scheduler.step()
         return
 
 
@@ -296,29 +321,31 @@ if __name__ == "__main__":
     # res = trainer.val()
     # print(res)
 
-    data = Data()
-    # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
-    train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
-    model = Fmp(input_channel, ndim, nclass)
-    # model = DeepConv(input_channel, ndim, nclass)
-    trainer = MiniBatchTrainer(train_loader, test_loader, model, opt=ADAMAX)
-    st = time()
-    # trainer.train()
-    trainer.load()
-    # trainer.fdsa_train()
-    # trainer.minibatch_train()
-    trainer.fdsa_batch_train(num_image=NUMIMAGE[MNIST])
-    # print(trainer.val()[0])
-    # trainer.save()
-    # trainer.batch_train(num_image=NUMIMAGE[MNIST])
-    # trainer.mix_train(num_image=NUMIMAGE[MNIST])
-    print(time() - st)
-    # for lr_init in range(-14, -7):
-    #     for meta_lr in [0.00005, 0.0001, 0.0008, 0.001, 0.005, 0.01]:
-    #         st = time()
-    #         print(f"lr_init:{lr_init}, meta_lr:{meta_lr}")
-    #         model = Fmp(input_channel, ndim, nclass)
-    #         trainer = BatchTrainer(train_loader, test_loader, model)
-    #         trainer.minibatch_train()
-    #         print(f"time long: {time() - st}")
+    trainer = DsaMiniBatchTrainer(RESNET, MNIST)
+    trainer.train(DSA)
+    # data = Data()
+    # # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
+    # train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()
+    # model = Fmp(input_channel, ndim, nclass)
+    # # model = DeepConv(input_channel, ndim, nclass)
+    # trainer = MiniBatchTrainer(train_loader, test_loader, model, opt=ADAMAX)
+    # st = time()
+    # # trainer.train()
+    # trainer.load()
+    # # trainer.fdsa_train()
+    # # trainer.minibatch_train()
+    # trainer.fdsa_batch_train(num_image=NUMIMAGE[MNIST])
+    # # print(trainer.val()[0])
+    # # trainer.save()
+    # # trainer.batch_train(num_image=NUMIMAGE[MNIST])
+    # # trainer.mix_train(num_image=NUMIMAGE[MNIST])
+    # print(time() - st)
+    # # for lr_init in range(-14, -7):
+    # #     for meta_lr in [0.00005, 0.0001, 0.0008, 0.001, 0.005, 0.01]:
+    # #         st = time()
+    # #         print(f"lr_init:{lr_init}, meta_lr:{meta_lr}")
+    # #         model = Fmp(input_channel, ndim, nclass)
+    # #         trainer = BatchTrainer(train_loader, test_loader, model)
+    # #         trainer.minibatch_train()
+    # #         print(f"time long: {time() - st}")
     pass
