@@ -137,37 +137,31 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
     def train(self, opt):
         assert opt == DSA
         self.model.reset_parameters()
-
-
-<< << << < HEAD
-self.optimizier = MiniDiffSelfAdapt(self.model.parameters(), lr_init=-3, meta_lr=0.1)
-== == == =
-self.optimizier = MiniDiffSelfAdapt(
-    self.model.parameters(), lr_init=-3, meta_lr=0.1)
-self.scheduler = DsaScheduler(
-    self.optimizier, self.model, self.train_loader)
-epochs = MINIBATCHEPOCHS / 2
-for i in range(epochs):
-    self.model.train()
-     loss_sum = 0
-      begin = time()
-       for imgs, label in self.train_loader:
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                label = label.cuda()
-            preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label)
-            self.optimizier.zero_grad()
-            loss.backward()
-            self.optimizier.step()
-            self.record_conflict()
-            loss_sum += loss.item() * len(imgs)/self.num_image
-        self.record_metrics(loss_sum)
-        print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
-              round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
-        self.scheduler.step()
->>>>>> > 9a42ab2f79efe733deb0a9131c2a272e05f1b3f3
-return
+        self.optimizier = MiniDiffSelfAdapt(
+            self.model.parameters(), lr_init=-3, meta_lr=0.1)
+        self.scheduler = DsaScheduler(
+            self.optimizier, self.model, self.train_loader)
+        epochs = MINIBATCHEPOCHS / 2
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            begin = time()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizier.zero_grad()
+                loss.backward()
+                self.optimizier.step()
+                self.record_conflict()
+                loss_sum += loss.item() * len(imgs)/self.num_image
+            self.record_metrics(loss_sum)
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+            self.scheduler.step()
+        return
 
 
 class Trainer():
