@@ -3,9 +3,6 @@ from const import CONFLICT, EPSILON, LOSSNEWLR, LOSSOLDLR
 from torch.optim.optimizer import Optimizer
 import torch
 import torch.nn.functional as F
-from models import ResNet
-from torch import Tensor
-from torch.utils.data import DataLoader
 
 # 小数据集，-9, 0.6, 0.3
 
@@ -259,7 +256,7 @@ class MiniDiffSelfAdapt(DiffSelfAdapt):
 
 
 class DsaScheduler():
-    def __init__(self, optimizer: MiniDiffSelfAdapt, model: ResNet, train_loader: DataLoader) -> None:
+    def __init__(self, optimizer, model, train_loader) -> None:
         self.last_w_grad = None
         self.tmp_w_grad = None
         self.optimizer = optimizer

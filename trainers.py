@@ -141,7 +141,7 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
             self.model.parameters(), lr_init=-3, meta_lr=0.1)
         self.scheduler = DsaScheduler(
             self.optimizier, self.model, self.train_loader)
-        epochs = MINIBATCHEPOCHS / 2
+        epochs = int(MINIBATCHEPOCHS / 2)
         for i in range(epochs):
             self.model.train()
             loss_sum = 0
