@@ -259,6 +259,11 @@ class MiniDiffSelfAdapt(DiffSelfAdapt):
                                     self._step_size(self.lr_matrix[i]))
         return
 
+
+class DsaScheduler():
+    def __init__(self) -> None:
+        pass
+
 # OBSERVW = 0
 
 # # best lr for mlp is -7, 0.7
