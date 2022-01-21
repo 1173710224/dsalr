@@ -57,8 +57,8 @@ class MiniBatchTrainer():
                 self.optimizier.zero_grad()
                 loss.backward()
                 # print("base loss:{}".format(round(loss.item(), 5)), end=", ")
-                self.optimizier.step()
-                # self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                # self.optimizier.step()
+                self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
@@ -138,7 +138,7 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
         assert opt == DSA
         self.model.reset_parameters()
         self.optimizier = MiniDiffSelfAdapt(
-            self.model.parameters(), lr_init=0.1, meta_lr=0.1)
+            self.model.parameters(), lr_init=0.1, meta_lr=0.0001)
         self.scheduler = DsaScheduler(
             self.optimizier, self.model, self.train_loader)
         epochs = int(MINIBATCHEPOCHS / 2)

@@ -175,7 +175,7 @@ if __name__ == "__main__":
     # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=ADAM)
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
-    print("resnet dsa + sgd")
+    print("resnet dsa + dsa")
     cnn_exp.debug(dataset=MNIST, opt=DSA)
 
     # cnn_exp.debug(dataset=SVHN, opt=ADAM)

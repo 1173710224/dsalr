@@ -71,6 +71,7 @@ class HypergraDient(Optimizer):
         self.param_groups[0]["lr"] = self.lr
         for i, param in enumerate(self.params):
             param.data -= param.grad * self.lr
+        print(self.lr_grad)
         return
 
     def _lr_autograd(self):
@@ -281,6 +282,7 @@ class DsaScheduler():
             preds = self.model(imgs)
             loss = F.cross_entropy(preds, label) * int(len(label)) / self.total_num
             loss.backward()
+            # break
         self.last_w_grad = []
         for param in self.optimizer.params:
             if param.grad != None:
@@ -302,6 +304,7 @@ class DsaScheduler():
             preds = self.model(imgs)
             loss = F.cross_entropy(preds, label) * int(len(label)) / self.total_num
             loss.backward()
+            # break
         self.tmp_w_grad = []
         for param in self.optimizer.params:
             if param.grad != None:
