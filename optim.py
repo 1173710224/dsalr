@@ -280,7 +280,8 @@ class DsaScheduler():
                 imgs = imgs.cuda()
                 label = label.cuda()
             preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label) * int(len(label)) / self.total_num
+            loss = F.cross_entropy(preds, label) * \
+                int(len(label)) / self.total_num
             loss.backward()
             # break
         self.last_w_grad = []
@@ -302,7 +303,8 @@ class DsaScheduler():
                 imgs = imgs.cuda()
                 label = label.cuda()
             preds = self.model(imgs)
-            loss = F.cross_entropy(preds, label) * int(len(label)) / self.total_num
+            loss = F.cross_entropy(preds, label) * \
+                int(len(label)) / self.total_num
             loss.backward()
             # break
         self.tmp_w_grad = []
@@ -325,7 +327,8 @@ class DsaScheduler():
             # self.optimizer.lr_matrix[i] += self.optimizer.meta_lr * \
             #     self.optimizer._d(
             #         torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
-            grad += torch.sum(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+            grad += torch.sum(
+                torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
         print(grad)
         self.optimizer.lr += self.optimizer.meta_lr * grad
         # clean grad
