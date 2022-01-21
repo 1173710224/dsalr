@@ -347,6 +347,109 @@ class DsaScheduler():
         return
 
 
+class SigmoidAlphaMiniDiffSelfAdapt(DiffSelfAdapt):
+    def __init__(self, params, lr_init=0, meta_lr=0.1) -> None:
+        self.lr = lr_init
+        super().__init__(params, lr_init, meta_lr)
+
+    def step(self, closure=None):
+        for i, param in enumerate(self.params):
+            # param.data -= torch.mul(self._w_d(param.grad),
+            #                         self._step_size(self.lr_matrix[i]))
+            param.data -= torch.mul(param.grad, F.sigmoid(self.lr))
+        return
+
+
+class SigmoidAlphaDsaScheduler():
+    def __init__(self, optimizer, model, train_loader) -> None:
+        self.last_w_grad = None
+        self.tmp_w_grad = None
+        self.optimizer = optimizer
+        self.model = model
+        self.train_loader = train_loader
+        self.total_num = 0
+        for _, label in train_loader:
+            self.total_num += len(label)
+        pass
+
+    def step(self):
+        # collect old grad
+        self.optimizer.zero_grad()
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * \
+                int(len(label)) / self.total_num
+            loss.backward()
+            # break
+        self.last_w_grad = []
+        for param in self.optimizer.params:
+            if param.grad != None:
+                self.last_w_grad.append(param.grad.clone())
+            else:
+                self.last_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        for i, param in enumerate(self.optimizer.params):
+            # param.data -=\
+            #     torch.mul(self.optimizer._w_d(param.grad),
+            #               self.optimizer._step_size(self.optimizer.lr_matrix[i]))
+            param.data -= torch.mul(param.grad, F.sigmoid(self.optimizer.lr))
+        # collect new grad
+        self.optimizer.zero_grad()
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * \
+                int(len(label)) / self.total_num
+            loss.backward()
+            # break
+        self.tmp_w_grad = []
+        for param in self.optimizer.params:
+            if param.grad != None:
+                self.tmp_w_grad.append(param.grad.clone())
+            else:
+                self.tmp_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        self.optimizer.zero_grad()
+        # roll back grad
+        for i, param in enumerate(self.optimizer.params):
+            # param.data +=\
+            #     torch.mul(self.optimizer._w_d(self.last_w_grad[i]),
+            #               self.optimizer._step_size(self.optimizer.lr_matrix[i]))
+            param.data += torch.mul(self.last_w_grad[i],
+                                    F.sigmoid(self.optimizer.lr))
+        # update learning rate
+        grad = 0
+        for i in range(len(self.last_w_grad)):
+            # self.optimizer.lr_matrix[i] += self.optimizer.meta_lr * \
+            #     self.optimizer._d(
+            #         torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+            grad += torch.sum(
+                torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        if grad > 0:
+            self.optimizer.lr += self.optimizer.meta_lr
+        elif grad < 0:
+            self.optimizer.lr -= self.optimizer.meta_lr
+        # clean grad
+        self.last_w_grad.clear()
+        self.tmp_w_grad.clear()
+        # avg_lr
+        # lr_sum = 0
+        # lr_num = 0
+        # for lrs in self.optimizer.lr_matrix:
+        #     lr_sum += lrs.sum().item()
+        #     lr_num += lrs.numel()
+        # self.optimizer.param_groups[0]["lr"] = (
+        #     round(0.1/(1 + exp(-lr_sum/lr_num)), 10), round(self.optimizer.meta_lr, 7))
+        self.optimizer.param_groups[0]["lr"] = (
+            round(F.sigmoid(self.optimizer.lr).item(), 10), round(self.optimizer.meta_lr, 7))
+        return
+
+
 # OBSERVW = 0
 
 # # best lr for mlp is -7, 0.7
