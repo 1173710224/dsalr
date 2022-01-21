@@ -16,6 +16,7 @@ class CnnExp():
             trainer = DsaMiniBatchTrainer(model_name, dataset)
         else:
             trainer = MiniBatchTrainer(model_name, dataset)
+        # trainer = MiniBatchTrainer(model_name, dataset)
         trainer.train(opt)
         trainer.save_metrics(
             f"result/large/{model_name}_{dataset}_{opt}_debug.json")
@@ -174,7 +175,7 @@ if __name__ == "__main__":
     # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=ADAM)
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
-    print("resnet dsa")
+    print("resnet dsa + sgd")
     cnn_exp.debug(dataset=MNIST, opt=DSA)
 
     # cnn_exp.debug(dataset=SVHN, opt=ADAM)

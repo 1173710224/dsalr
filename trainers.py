@@ -57,8 +57,8 @@ class MiniBatchTrainer():
                 self.optimizier.zero_grad()
                 loss.backward()
                 # print("base loss:{}".format(round(loss.item(), 5)), end=", ")
-                # self.optimizier.step()
-                self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                self.optimizier.step()
+                # self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
@@ -138,7 +138,7 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
         assert opt == DSA
         self.model.reset_parameters()
         self.optimizier = MiniDiffSelfAdapt(
-            self.model.parameters(), lr_init=-3, meta_lr=0.1)
+            self.model.parameters(), lr_init=0.1, meta_lr=0.1)
         self.scheduler = DsaScheduler(
             self.optimizier, self.model, self.train_loader)
         epochs = int(MINIBATCHEPOCHS / 2)
@@ -161,8 +161,9 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)), end=". ")
             print("upd lr...", end="")
+            begin = time()
             self.scheduler.step()
-            print("over")
+            print("{}s.".format(round(time() - begin, 4)))
         return
 
 

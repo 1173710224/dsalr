@@ -251,7 +251,8 @@ if __name__ == "__main__":
     # print(1/x * x.abs())
     # print(torch.pow(10, x))
 
-    print(pow(2, -9+0.001))
-    print(pow(2, -9))
-    print(pow(2, -9-0.001))
+    # print(pow(2, -9+0.001))
+    # print(pow(2, -9))
+    # print(pow(2, -9-0.001))
+    print(0.1 * torch.sigmoid(torch.Tensor([-4.6])))
     pass
