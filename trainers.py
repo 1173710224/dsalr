@@ -138,7 +138,7 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
         assert opt == DSA
         self.model.reset_parameters()
         self.optimizier = MiniDiffSelfAdapt(
-            self.model.parameters(), lr_init=0.1, meta_lr=0.0001)
+            self.model.parameters(), lr_init=0.1, meta_lr=0.1)
         self.scheduler = DsaScheduler(
             self.optimizier, self.model, self.train_loader)
         # self.optimizier = SigmoidAlphaMiniDiffSelfAdapt(
