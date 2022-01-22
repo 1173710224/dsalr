@@ -104,7 +104,7 @@ class EnhanceExp():
         trainer = ModelEnhanceTrainer(model_name, dataset)
         trainer.train(opt)
         trainer.save_metrics(
-            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
+            f"result/large/{model_name}_{dataset}_{opt}_enhance.json")
         return
 
 
