@@ -347,6 +347,97 @@ class DsaScheduler():
         return
 
 
+class Momentum(DiffSelfAdapt):
+    def __init__(self, params, lr_init=0.001, meta_lr=0.0001, momentum=0.9, weight_decay=0.0001) -> None:
+        super().__init__(params, lr_init, meta_lr)
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+        self.sum_grads = []
+        self.lr = lr_init
+        for param in self.params:
+            self.sum_grads.append(torch.zeros(
+                param.size(), device=param.device))
+        pass
+
+    def step(self, closure=None):
+        for i, param in enumerate(self.params):
+            self.sum_grads[i] = self.momentum * \
+                param.grad.clone() + self.sum_grads[i] * self.weight_decay
+            param.data -= torch.mul(self.sum_grads[i], self.lr)
+        return
+
+
+class MomentumDsaScheduler():
+    def __init__(self, optimizer: Momentum, model, train_loader) -> None:
+        self.last_w_grad = None
+        self.tmp_w_grad = None
+        self.optimizer = optimizer
+        self.model = model
+        self.train_loader = train_loader
+        self.total_num = 0
+        for _, label in train_loader:
+            self.total_num += len(label)
+        pass
+
+    def step(self):
+        # collect old grad
+        self.optimizer.zero_grad()
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * \
+                int(len(label)) / self.total_num
+            loss.backward()
+            # break
+        self.last_w_grad = []
+        for i, param in enumerate(self.optimizer.params):
+            if param.grad != None:
+                self.last_w_grad.append(self.optimizer.momentum *
+                                        param.grad.clone() + self.optimizer.sum_grads[i] * self.optimizer.weight_decay)
+            else:
+                self.last_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+            param.data -= torch.mul(self.last_w_grad[i], self.optimizer.lr)
+        # collect new grad
+        self.optimizer.zero_grad()
+        for imgs, label in self.train_loader:
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                label = label.cuda()
+            preds = self.model(imgs)
+            loss = F.cross_entropy(preds, label) * \
+                int(len(label)) / self.total_num
+            loss.backward()
+            # break
+        self.tmp_w_grad = []
+        for param in self.optimizer.params:
+            if param.grad != None:
+                self.tmp_w_grad.append(param.grad.clone())
+            else:
+                self.tmp_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        self.optimizer.zero_grad()
+        # roll back grad
+        for i, param in enumerate(self.optimizer.params):
+            param.data += torch.mul(self.last_w_grad[i], self.optimizer.lr)
+        # update learning rate
+        grad = 0
+        for i in range(len(self.last_w_grad)):
+            grad += torch.sum(
+                torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        print(grad)
+        self.optimizer.lr += self.optimizer.meta_lr * grad
+        # clean grad
+        self.last_w_grad.clear()
+        self.tmp_w_grad.clear()
+        # avg_lr
+        self.optimizer.param_groups[0]["lr"] = (
+            round(self.optimizer.lr.item(), 10), round(self.optimizer.meta_lr, 7))
+        return
+
+
 class SigmoidAlphaMiniDiffSelfAdapt(DiffSelfAdapt):
     def __init__(self, params, lr_init=0, meta_lr=0.1) -> None:
         self.lr = lr_init
@@ -397,7 +488,8 @@ class SigmoidAlphaDsaScheduler():
             # param.data -=\
             #     torch.mul(self.optimizer._w_d(param.grad),
             #               self.optimizer._step_size(self.optimizer.lr_matrix[i]))
-            param.data -= torch.mul(param.grad, 0.2/(1+exp(-self.optimizer.lr)))
+            param.data -= torch.mul(param.grad, 0.2 /
+                                    (1+exp(-self.optimizer.lr)))
         # collect new grad
         self.optimizer.zero_grad()
         for imgs, label in self.train_loader:
