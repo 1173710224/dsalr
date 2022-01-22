@@ -24,12 +24,14 @@ class MiniBatchTrainer():
 
     def __init__(self, model_name, dataset) -> None:
         # init data
+        self.dataset = dataset
         train_loader, test_loader, input_channel, ndim, nclass = Data().get(dataset)
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.num_image = utils.num_image(train_loader)  # get num of image
         # init model
         self.model = get_model(model_name, input_channel, ndim, nclass)
+        self.base_model_path = "model/{}_sgd".format(self.dataset)
         # init state dict
         self.state_dict = copy.deepcopy(INITDICT)
         pass
@@ -56,7 +58,6 @@ class MiniBatchTrainer():
                 loss = F.cross_entropy(preds, label)
                 self.optimizier.zero_grad()
                 loss.backward()
-                # print("base loss:{}".format(round(loss.item(), 5)), end=", ")
                 # self.optimizier.step()
                 self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
@@ -129,12 +130,7 @@ class MiniBatchTrainer():
         self.model.load_state_dict(state_dict)
         return
 
-
-class DsaMiniBatchTrainer(MiniBatchTrainer):
-    def __init__(self, model_name, dataset) -> None:
-        super().__init__(model_name, dataset)
-
-    def train(self, opt):
+    def dsa_train(self, opt):
         assert opt == DSA
         self.model.reset_parameters()
         # self.optimizier = MiniDiffSelfAdapt(
@@ -175,6 +171,73 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
                 begin = time()
                 self.scheduler.step()
                 print("{}s.".format(round(time() - begin, 4)))
+        return
+
+    def save_train(self, opt):
+        self.model.reset_parameters()
+        self.load_model(path="model/{}_sgd".format(self.dataset))
+        self.optimizier = utils.get_opt(opt, self.model)
+        lr_schedular = utils.get_scheduler(opt, self.optimizier)
+        current_opt_accu = 0
+        epochs = MINIBATCHEPOCHS
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            begin = time()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizier.zero_grad()
+                loss.backward()
+                self.optimizier.step()
+                self.record_conflict()
+                loss_sum += loss.item() * len(imgs)/self.num_image
+            self.record_metrics(loss_sum)
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+            lr_schedular.step()
+            if self.state_dict[ACCU][-1] > current_opt_accu:
+                current_opt_accu = self.state_dict[ACCU][-1]
+                self.save_model(path="model/{}_sgd".format(self.dataset))
+                print("save done!")
+        return
+
+    def enhance_train(self, epochs=10, mode=MINI, opt=SGD):
+        self.load_model(self.base_model_path)
+        print("init accuracy: {}".format(self.val()[0]))
+        self.optimizier = utils.get_opt(opt, self.model)
+        lr_schedular = utils.get_scheduler(opt, self.optimizier)
+        if mode == MINI and opt in [DSA, HD]:
+            pass
+        elif mode == MINI and opt not in [DSA]:
+            pass
+        elif mode != MINI and opt in [DSA]:
+            self.optimizier = DiffSelfAdapt(
+                self.model.parameters(), lr_init=-6, meta_lr=1)
+            lr_schedular = DsaScheduler(
+                self.optimizier, self.model, self.train_loader)
+            for i in range(epochs):
+                self.model.train()
+                loss_sum = 0
+                begin = time()
+                for imgs, label in self.train_loader:
+                    if torch.cuda.is_available():
+                        imgs = imgs.cuda()
+                        label = label.cuda()
+                    preds = self.model(imgs)
+                    loss = F.cross_entropy(
+                        preds, label) * len(label) / self.num_image
+                    loss.backward()
+                    loss_sum += loss.item()
+                self.record_metrics(loss_sum)
+                # self.optimizier.step()
+                lr_schedular.step()
+                self.optimizier.zero_grad()
+                print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                                                                                                                     round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
         return
 
 
@@ -261,85 +324,6 @@ class Trainer():
         return
 
 
-class BestModelRecoder(MiniBatchTrainer):
-    def __init__(self, model_name, dataset) -> None:
-        self.dataset = dataset
-        super().__init__(model_name, dataset)
-
-    def train(self, opt):
-        self.model.reset_parameters()
-        self.load_model(path="model/{}_sgd".format(self.dataset))
-        self.optimizier = utils.get_opt(opt, self.model)
-        lr_schedular = utils.get_scheduler(opt, self.optimizier)
-        current_opt_accu = 0
-        epochs = MINIBATCHEPOCHS
-        for i in range(epochs):
-            self.model.train()
-            loss_sum = 0
-            begin = time()
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda()
-                    label = label.cuda()
-                preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label)
-                self.optimizier.zero_grad()
-                loss.backward()
-                self.optimizier.step()
-                self.record_conflict()
-                loss_sum += loss.item() * len(imgs)/self.num_image
-            self.record_metrics(loss_sum)
-            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
-            lr_schedular.step()
-            if self.state_dict[ACCU][-1] > current_opt_accu:
-                current_opt_accu = self.state_dict[ACCU][-1]
-                self.save_model(path="model/{}_sgd".format(self.dataset))
-                print("save done!")
-        return
-
-
-class ModelEnhanceTrainer(MiniBatchTrainer):
-    def __init__(self, model_name=RESNET, dataset=MNIST) -> None:
-        super().__init__(model_name, dataset)
-        self.base_model_path = "model/MNIST_sgd"
-        pass
-
-    def train(self, epochs=10, mode=MINI, opt=SGD):
-        self.load_model(self.base_model_path)
-        print("init accuracy: {}".format(self.val()[0]))
-        self.optimizier = utils.get_opt(opt, self.model)
-        lr_schedular = utils.get_scheduler(opt, self.optimizier)
-        if mode == MINI and opt in [DSA, HD]:
-            pass
-        elif mode == MINI and opt not in [DSA]:
-            pass
-        elif mode != MINI and opt in [DSA]:
-            self.optimizier = DiffSelfAdapt(
-                self.model.parameters(), lr_init=-6, meta_lr=1)
-            lr_schedular = DsaScheduler(self.optimizier, self.model, self.train_loader)
-            for i in range(epochs):
-                self.model.train()
-                loss_sum = 0
-                begin = time()
-                for imgs, label in self.train_loader:
-                    if torch.cuda.is_available():
-                        imgs = imgs.cuda()
-                        label = label.cuda()
-                    preds = self.model(imgs)
-                    loss = F.cross_entropy(
-                        preds, label) * len(label) / self.num_image
-                    loss.backward()
-                    loss_sum += loss.item()
-                self.record_metrics(loss_sum)
-                # self.optimizier.step()
-                lr_schedular.step()
-                self.optimizier.zero_grad()
-                print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
-                                                                                                                     round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
-        return
-
-
 class SumTrainer():
     def __init__(self) -> None:
         self.data_num = 10000
@@ -414,8 +398,6 @@ if __name__ == "__main__":
     # res = trainer.val()
     # print(res)
 
-    trainer = DsaMiniBatchTrainer(RESNET, MNIST)
-    trainer.train(DSA)
     # data = Data()
     # # train_loader, test_loader, input_channel, ndim, nclass = data.load_cifar10()
     # train_loader, test_loader, input_channel, ndim, nclass = data.load_mnist()

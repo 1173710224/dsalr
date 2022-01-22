@@ -254,5 +254,5 @@ if __name__ == "__main__":
     # print(pow(2, -9+0.001))
     # print(pow(2, -9))
     # print(pow(2, -9-0.001))
-    print(0.2 * torch.sigmoid(torch.Tensor([-10])))
+    print(0.1 * torch.sigmoid(torch.Tensor([-8])))
     pass

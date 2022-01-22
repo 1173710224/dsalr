@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 import pickle
-from optim import FDecreaseDsa, HypergraDient, DiffSelfAdapt
+from optim import FDecreaseDsa, HypergraDient, DiffSelfAdapt, MomentumDiffSelfAdapt
 
 
 class Data():
@@ -239,7 +239,8 @@ def get_opt(opt, model, dataset=None):
         return torch.optim.Adam(
             model.parameters())
     if opt == DSA:
-        return DiffSelfAdapt(model.parameters(), lr_init=-3, meta_lr=0.1)
+        # return DiffSelfAdapt(model.parameters(), lr_init=-3, meta_lr=0.1)
+        return MomentumDiffSelfAdapt(model.parameters(), lr_init=0.1, meta_lr=0.1)
     if opt == HD:
         if dataset in SMALL:
             return HypergraDient(model.parameters(), lr_init=0.1, meta_lr=0.01)
