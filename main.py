@@ -42,7 +42,7 @@ class CnnExp():
 
     def find_best_model(self, model_name=RESNET, dataset=CIFAR10):
         trainer = BestModelRecoder(model_name, dataset)
-        trainer.train()
+        trainer.train(SGD)
         return
 
 
@@ -180,6 +180,7 @@ if __name__ == "__main__":
     # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=ADAM)
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
+
     print("resnet dsa + dsa")
     cnn_exp.debug(dataset=MNIST, opt=DSA)
     # cnn_exp.debug(dataset=SVHN, opt=DSA)

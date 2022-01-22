@@ -428,7 +428,9 @@ class MomentumDsaScheduler():
             grad += torch.sum(
                 torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
         print(grad)
-        self.optimizer.lr += self.optimizer.meta_lr * grad
+        tmp = self.optimizer.lr + self.optimizer.meta_lr * grad
+        if tmp.item() > 0 and tmp.item() < 0.1:
+            self.optimizer.lr += self.optimizer.meta_lr * grad
         # clean grad
         self.last_w_grad.clear()
         self.tmp_w_grad.clear()

@@ -137,15 +137,15 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
     def train(self, opt):
         assert opt == DSA
         self.model.reset_parameters()
-        self.optimizier = MiniDiffSelfAdapt(
-            self.model.parameters(), lr_init=0.1, meta_lr=0.1)
-        self.scheduler = DsaScheduler(
-            self.optimizier, self.model, self.train_loader)
-
-        # self.optimizier = Momentum(
-        #     self.model.parameters(), lr_init=0.1, meta_lr=0.0001)
-        # self.scheduler = MomentumDsaScheduler(
+        # self.optimizier = MiniDiffSelfAdapt(
+        #     self.model.parameters(), lr_init=0.1, meta_lr=0.1)
+        # self.scheduler = DsaScheduler(
         #     self.optimizier, self.model, self.train_loader)
+
+        self.optimizier = Momentum(
+            self.model.parameters(), lr_init=0.1, meta_lr=0.1)
+        self.scheduler = MomentumDsaScheduler(
+            self.optimizier, self.model, self.train_loader)
 
         # self.optimizier = SigmoidAlphaMiniDiffSelfAdapt(
         #     self.model.parameters(), lr_init=0, meta_lr=0.5)
