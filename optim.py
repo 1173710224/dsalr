@@ -142,9 +142,10 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
     处理batch train或者单个batch数据的优化器，基于Momentum
     """
 
-    def __init__(self, params, lr_init=0.001, meta_lr=0.0001, momentum=0.9) -> None:
+    def __init__(self, params, lr_init=0.001, meta_lr=0.0001, momentum=0.9, weight_decay=0.0001) -> None:
         super().__init__(params, lr_init, meta_lr)
         self.momentum = momentum
+        self.weight_decay = weight_decay
         self.sum_grads = []
         for param in self.params:
             self.sum_grads.append(torch.zeros(
@@ -168,7 +169,7 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
         loss = F.cross_entropy(preds, label)
         loss.backward()
         self.tmp_w_grad = []
-        for param in self.optimizer.params:
+        for param in self.params:
             if param.grad != None:
                 self.tmp_w_grad.append(param.grad.clone())
             else:
@@ -205,6 +206,9 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
             lr_num += lrs.numel()
         self.param_groups[0]["lr"] = (
             round(lr_sum/lr_num, 10), round(self.meta_lr, 7))
+        # weight decay
+        for i, param in enumerate(self.params):
+            param.data *= (1 - self.weight_decay)
         return
 
 

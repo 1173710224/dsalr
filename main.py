@@ -13,9 +13,10 @@ class CnnExp():
 
     def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM, pre_train=True):
         trainer = MiniBatchTrainer(model_name, dataset)
-        trainer.train(opt)
-        trainer.save_metrics(
-            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
+        # trainer.train(opt)
+        trainer.momentum_dsa_train(opt)
+        # trainer.save_metrics(
+        #     f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
 
     def run(self):
