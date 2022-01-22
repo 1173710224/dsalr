@@ -316,7 +316,8 @@ class ModelEnhanceTrainer(MiniBatchTrainer):
             pass
         elif mode != MINI and opt in [DSA]:
             self.optimizier = DiffSelfAdapt(
-                self.model.parameters(), lr_init=-4.6, meta_lr=0.1)
+                self.model.parameters(), lr_init=-6, meta_lr=1)
+            lr_schedular = DsaScheduler(self.optimizier, self.model, self.train_loader)
             for i in range(epochs):
                 self.model.train()
                 loss_sum = 0
@@ -331,7 +332,8 @@ class ModelEnhanceTrainer(MiniBatchTrainer):
                     loss.backward()
                     loss_sum += loss.item()
                 self.record_metrics(loss_sum)
-                self.optimizier.step()
+                # self.optimizier.step()
+                lr_schedular.step()
                 self.optimizier.zero_grad()
                 print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
                                                                                                                      round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))

@@ -139,17 +139,17 @@ class DiffSelfAdapt(Optimizer):
     def step(self, model=None, imgs=None, label=None, closure=None):
         self._w_step()
         preds = model(imgs)
-        # loss = F.cross_entropy(preds, label)
-        loss = F.mse_loss(torch.softmax(preds, 1),
-                          F.one_hot(label).float())
+        loss = F.cross_entropy(preds, label)
+        # loss = F.mse_loss(torch.softmax(preds, 1),
+        #                   F.one_hot(label).float())
         self.zero_grad()
         loss.backward()
         self._lr_w_step()
         # detect conflict
         preds = model(imgs)
-        # newloss = F.cross_entropy(preds, label)
-        newloss = F.mse_loss(torch.softmax(preds, 1),
-                             F.one_hot(label).float())
+        newloss = F.cross_entropy(preds, label)
+        # newloss = F.mse_loss(torch.softmax(preds, 1),
+        #                      F.one_hot(label).float())
         self.conflict_dict = {}
         self.conflict_dict[LOSSOLDLR] = loss.item()
         self.conflict_dict[LOSSNEWLR] = newloss.item()
@@ -254,9 +254,9 @@ class MiniDiffSelfAdapt(DiffSelfAdapt):
 
     def step(self, closure=None):
         for i, param in enumerate(self.params):
-            # param.data -= torch.mul(self._w_d(param.grad),
-            #                         self._step_size(self.lr_matrix[i]))
-            param.data -= torch.mul(param.grad, self.lr)
+            param.data -= torch.mul(self._w_d(param.grad),
+                                    self._step_size(self.lr_matrix[i]))
+            # param.data -= torch.mul(param.grad, self.lr)
         return
 
 
@@ -292,10 +292,10 @@ class DsaScheduler():
                 self.last_w_grad.append(torch.zeros(
                     param.size(), device=param.device))
         for i, param in enumerate(self.optimizer.params):
-            # param.data -=\
-            #     torch.mul(self.optimizer._w_d(param.grad),
-            #               self.optimizer._step_size(self.optimizer.lr_matrix[i]))
-            param.data -= torch.mul(param.grad, self.optimizer.lr)
+            param.data -=\
+                torch.mul(self.optimizer._w_d(param.grad),
+                          self.optimizer._step_size(self.optimizer.lr_matrix[i]))
+            # param.data -= torch.mul(param.grad, self.optimizer.lr)
         # collect new grad
         self.optimizer.zero_grad()
         for imgs, label in self.train_loader:
@@ -317,33 +317,37 @@ class DsaScheduler():
         self.optimizer.zero_grad()
         # roll back grad
         for i, param in enumerate(self.optimizer.params):
-            # param.data +=\
-            #     torch.mul(self.optimizer._w_d(self.last_w_grad[i]),
-            #               self.optimizer._step_size(self.optimizer.lr_matrix[i]))
-            param.data += torch.mul(self.last_w_grad[i], self.optimizer.lr)
+            param.data +=\
+                torch.mul(self.optimizer._w_d(self.last_w_grad[i]),
+                          self.optimizer._step_size(self.optimizer.lr_matrix[i]))
+            # param.data += torch.mul(self.last_w_grad[i], self.optimizer.lr)
         # update learning rate
         grad = 0
         for i in range(len(self.last_w_grad)):
-            # self.optimizer.lr_matrix[i] += self.optimizer.meta_lr * \
-            #     self.optimizer._d(
-            #         torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
-            grad += torch.sum(
-                torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
-        print(grad)
-        self.optimizer.lr += self.optimizer.meta_lr * grad
+            self.optimizer.lr_matrix[i] += self.optimizer.meta_lr * \
+                self.optimizer._d(
+                    torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+            # grad += torch.sum(
+            #     torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+        # print(grad)
+        # self.optimizer.lr += self.optimizer.meta_lr * grad
+        # update w
+        for i, param in enumerate(self.optimizer.params):
+            param.data -= torch.mul(
+                self.optimizer._w_d(self.last_w_grad[i]), self.optimizer._zero_step_size(self.optimizer.lr_matrix[i]))
         # clean grad
         self.last_w_grad.clear()
         self.tmp_w_grad.clear()
         # avg_lr
-        # lr_sum = 0
-        # lr_num = 0
-        # for lrs in self.optimizer.lr_matrix:
-        #     lr_sum += lrs.sum().item()
-        #     lr_num += lrs.numel()
-        # self.optimizer.param_groups[0]["lr"] = (
-        #     round(0.1/(1 + exp(-lr_sum/lr_num)), 10), round(self.optimizer.meta_lr, 7))
+        lr_sum = 0
+        lr_num = 0
+        for lrs in self.optimizer.lr_matrix:
+            lr_sum += lrs.sum().item()
+            lr_num += lrs.numel()
         self.optimizer.param_groups[0]["lr"] = (
-            round(self.optimizer.lr.item(), 10), round(self.optimizer.meta_lr, 7))
+            round(0.1/(1 + exp(-lr_sum/lr_num)), 10), round(self.optimizer.meta_lr, 7))
+        # self.optimizer.param_groups[0]["lr"] = (
+        #     round(self.optimizer.lr.item(), 10), round(self.optimizer.meta_lr, 7))
         return
 
 
