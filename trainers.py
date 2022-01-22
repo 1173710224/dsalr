@@ -6,7 +6,7 @@ from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler
+from optim import FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler, SigmoidAlphaMiniDiffSelfAdapt, SigmoidAlphaDsaScheduler
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
@@ -141,7 +141,11 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
             self.model.parameters(), lr_init=0.1, meta_lr=0.0001)
         self.scheduler = DsaScheduler(
             self.optimizier, self.model, self.train_loader)
-        epochs = int(MINIBATCHEPOCHS / 2)
+        # self.optimizier = SigmoidAlphaMiniDiffSelfAdapt(
+        #     self.model.parameters(), lr_init=0, meta_lr=0.5)
+        # self.scheduler = SigmoidAlphaDsaScheduler(
+        #     self.optimizier, self.model, self.train_loader)
+        epochs = int(MINIBATCHEPOCHS / 2) * 2
         for i in range(epochs):
             self.model.train()
             loss_sum = 0
@@ -159,11 +163,12 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)), end=". ")
-            print("upd lr...", end="")
-            begin = time()
-            self.scheduler.step()
-            print("{}s.".format(round(time() - begin, 4)))
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)), end="\n")
+            if (i + 1) % 10 == 0:
+                print("upd lr...", end="")
+                begin = time()
+                self.scheduler.step()
+                print("{}s.".format(round(time() - begin, 4)))
         return
 
 
@@ -247,6 +252,42 @@ class Trainer():
     def save_metrics(self, path=""):
         with open(path, "w") as f:
             json.dump(self.state_dict, f)
+        return
+
+
+class BestModelRecoder(MiniBatchTrainer):
+    def __init__(self, model_name, dataset) -> None:
+        self.dataset = dataset
+        super().__init__(model_name, dataset)
+
+    def train(self, opt):
+        self.model.reset_parameters()
+        self.optimizier = utils.get_opt(opt, self.model)
+        lr_schedular = utils.get_scheduler(opt, self.optimizier)
+        current_opt_accu = 0
+        epochs = MINIBATCHEPOCHS
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            begin = time()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizier.zero_grad()
+                loss.backward()
+                self.optimizier.step()
+                self.record_conflict()
+                loss_sum += loss.item() * len(imgs)/self.num_image
+            self.record_metrics(loss_sum)
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+            lr_schedular.step()
+            if self.state_dict[ACCU][-1] > current_opt_accu:
+                current_opt_accu = self.state_dict[ACCU][-1]
+                self.save_model(path="model/{}_sgd".format(self.dataset))
         return
 
 
