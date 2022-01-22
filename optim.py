@@ -431,12 +431,21 @@ class MomentumDsaScheduler():
         tmp = self.optimizer.lr + self.optimizer.meta_lr * grad
         if tmp.item() > 0 and tmp.item() < 0.1:
             self.optimizer.lr += self.optimizer.meta_lr * grad
+        elif tmp.item() < 0:
+            self.optimizer.lr *= 0.5
+        elif tmp.item() > 0.1:
+            self.optimizer.lr = 0.1
         # clean grad
         self.last_w_grad.clear()
         self.tmp_w_grad.clear()
         # avg_lr
-        self.optimizer.param_groups[0]["lr"] = (
-            round(self.optimizer.lr.item(), 10), round(self.optimizer.meta_lr, 7))
+        try:
+            self.optimizer.param_groups[0]["lr"] = (
+                round(self.optimizer.lr.item(), 10), round(self.optimizer.meta_lr, 7))
+        except:
+            self.optimizer.param_groups[0]["lr"] = (
+                round(self.optimizer.lr, 10), round(self.optimizer.meta_lr, 7))
+
         return
 
 
