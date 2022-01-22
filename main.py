@@ -100,9 +100,9 @@ class EnhanceExp():
     def __init__(self) -> None:
         pass
 
-    def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM, pre_train=True):
+    def enhance(self, model_name=RESNET, dataset=MNIST, opt=ADAM, pre_train=True):
         trainer = ModelEnhanceTrainer(model_name, dataset)
-        trainer.train(opt)
+        trainer.train(mode="batch", opt=opt)
         trainer.save_metrics(
             f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
@@ -183,7 +183,8 @@ if __name__ == "__main__":
     # # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
-    cnn_exp = CnnExp()
+    # cnn_exp = CnnExp()
+    # cnn_exp.find_best_model(RESNET, MNIST)
     # print("resnet momentum")
     # cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
     # print("fmp momentum")
@@ -193,8 +194,8 @@ if __name__ == "__main__":
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
 
-    print("resnet dsa + dsa")
-    cnn_exp.debug(dataset=MNIST, opt=DSA)
+    # print("resnet dsa + dsa")
+    # cnn_exp.debug(dataset=MNIST, opt=DSA)
     # cnn_exp.debug(dataset=SVHN, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR10, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR100, opt=DSA)
@@ -207,4 +208,7 @@ if __name__ == "__main__":
     # cnn_exp.debug(SVHN, DSA)
     # cnn_exp.debug(CIFAR10, DSA, pre_train=False)
     # cnn_exp.debug(CIFAR100, DSA)
+
+    enhance_exp = EnhanceExp()
+    enhance_exp.enhance(model_name=RESNET, dataset=MNIST, opt=DSA)
     pass

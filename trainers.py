@@ -268,6 +268,7 @@ class BestModelRecoder(MiniBatchTrainer):
 
     def train(self, opt):
         self.model.reset_parameters()
+        self.load_model(path="model/{}_sgd".format(self.dataset))
         self.optimizier = utils.get_opt(opt, self.model)
         lr_schedular = utils.get_scheduler(opt, self.optimizier)
         current_opt_accu = 0
@@ -294,6 +295,7 @@ class BestModelRecoder(MiniBatchTrainer):
             if self.state_dict[ACCU][-1] > current_opt_accu:
                 current_opt_accu = self.state_dict[ACCU][-1]
                 self.save_model(path="model/{}_sgd".format(self.dataset))
+                print("save done!")
         return
 
 
