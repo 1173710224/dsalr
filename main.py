@@ -40,6 +40,10 @@ class CnnExp():
                     f"result/big/{self.model_name}_{dataset}_{opt}")
         return
 
+    def find_best_model(self, model_name=RESNET, dataset=CIFAR10):
+
+        return
+
 
 class MlpExp():
     def __init__(self) -> None:
@@ -177,6 +181,9 @@ if __name__ == "__main__":
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
     print("resnet dsa + dsa")
     cnn_exp.debug(dataset=MNIST, opt=DSA)
+    # cnn_exp.debug(dataset=SVHN, opt=DSA)
+    # cnn_exp.debug(dataset=CIFAR10, opt=DSA)
+    # cnn_exp.debug(dataset=CIFAR100, opt=DSA)
 
     # cnn_exp.debug(dataset=SVHN, opt=ADAM)
     # cnn_exp.debug(dataset=CIFAR10, opt=ADAM)

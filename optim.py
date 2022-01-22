@@ -351,12 +351,14 @@ class SigmoidAlphaMiniDiffSelfAdapt(DiffSelfAdapt):
     def __init__(self, params, lr_init=0, meta_lr=0.1) -> None:
         self.lr = lr_init
         super().__init__(params, lr_init, meta_lr)
+        self.param_groups[0]["lr"] = (
+            round(0.2/(1 + exp(-self.lr)), 10), round(self.meta_lr, 7))
 
     def step(self, closure=None):
         for i, param in enumerate(self.params):
             # param.data -= torch.mul(self._w_d(param.grad),
             #                         self._step_size(self.lr_matrix[i]))
-            param.data -= torch.mul(param.grad, F.sigmoid(self.lr))
+            param.data -= torch.mul(param.grad, 0.2/(1+exp(-self.lr)))
         return
 
 
@@ -395,7 +397,7 @@ class SigmoidAlphaDsaScheduler():
             # param.data -=\
             #     torch.mul(self.optimizer._w_d(param.grad),
             #               self.optimizer._step_size(self.optimizer.lr_matrix[i]))
-            param.data -= torch.mul(param.grad, F.sigmoid(self.optimizer.lr))
+            param.data -= torch.mul(param.grad, 0.2/(1+exp(-self.optimizer.lr)))
         # collect new grad
         self.optimizer.zero_grad()
         for imgs, label in self.train_loader:
@@ -421,7 +423,7 @@ class SigmoidAlphaDsaScheduler():
             #     torch.mul(self.optimizer._w_d(self.last_w_grad[i]),
             #               self.optimizer._step_size(self.optimizer.lr_matrix[i]))
             param.data += torch.mul(self.last_w_grad[i],
-                                    F.sigmoid(self.optimizer.lr))
+                                    0.2/(1+exp(-self.optimizer.lr)))
         # update learning rate
         grad = 0
         for i in range(len(self.last_w_grad)):
@@ -446,7 +448,7 @@ class SigmoidAlphaDsaScheduler():
         # self.optimizer.param_groups[0]["lr"] = (
         #     round(0.1/(1 + exp(-lr_sum/lr_num)), 10), round(self.optimizer.meta_lr, 7))
         self.optimizer.param_groups[0]["lr"] = (
-            round(F.sigmoid(self.optimizer.lr).item(), 10), round(self.optimizer.meta_lr, 7))
+            round(0.2/(1 + exp(-self.optimizer.lr)), 10), round(self.optimizer.meta_lr, 7))
         return
 
 
