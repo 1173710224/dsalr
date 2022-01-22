@@ -104,6 +104,8 @@ NAME2BATCHSIZE = {
     SVHN: 64,
 }
 
+# mode
+MINI = "mini"
 
 if __name__ == "__main__":
     pass

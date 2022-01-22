@@ -6,11 +6,11 @@ from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler, SigmoidAlphaMiniDiffSelfAdapt, SigmoidAlphaDsaScheduler, MomentumDsaScheduler, Momentum
+from optim import DiffSelfAdapt, FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler, SigmoidAlphaMiniDiffSelfAdapt, SigmoidAlphaDsaScheduler, MomentumDsaScheduler, Momentum
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
-from models import Mlp, DeepConv, Fmp, Summor, Tracker, get_model
+from models import Mlp, DeepConv, Fmp, ResNet, Summor, Tracker, get_model
 from utils import Data
 import utils
 from time import time
@@ -294,6 +294,45 @@ class BestModelRecoder(MiniBatchTrainer):
             if self.state_dict[ACCU][-1] > current_opt_accu:
                 current_opt_accu = self.state_dict[ACCU][-1]
                 self.save_model(path="model/{}_sgd".format(self.dataset))
+        return
+
+
+class ModelEnhanceTrainer(MiniBatchTrainer):
+    def __init__(self, model_name=RESNET, dataset=MNIST) -> None:
+        super().__init__(model_name, dataset)
+        self.base_model_path = "model/MNIST_sgd"
+        pass
+
+    def train(self, epochs=10, mode=MINI, opt=SGD):
+        self.load_model(self.base_model_path)
+        print("init accuracy: {}".format(self.val()[0]))
+        self.optimizier = utils.get_opt(opt, self.model)
+        lr_schedular = utils.get_scheduler(opt, self.optimizier)
+        if mode == MINI and opt in [DSA, HD]:
+            pass
+        elif mode == MINI and opt not in [DSA]:
+            pass
+        elif mode != MINI and opt in [DSA]:
+            self.optimizier = DiffSelfAdapt(
+                self.model.parameters(), lr_init=-4.6, meta_lr=0.1)
+            for i in range(epochs):
+                self.model.train()
+                loss_sum = 0
+                begin = time()
+                for imgs, label in self.train_loader:
+                    if torch.cuda.is_available():
+                        imgs = imgs.cuda()
+                        label = label.cuda()
+                    preds = self.model(imgs)
+                    loss = F.cross_entropy(
+                        preds, label) * len(label) / self.num_image
+                    loss.backward()
+                    loss_sum += loss.item()
+                self.record_metrics(loss_sum)
+                self.optimizier.step()
+                self.optimizier.zero_grad()
+                print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                                                                                                                     round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
         return
 
 
