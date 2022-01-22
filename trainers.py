@@ -6,7 +6,7 @@ from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler, SigmoidAlphaMiniDiffSelfAdapt, SigmoidAlphaDsaScheduler
+from optim import FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler, SigmoidAlphaMiniDiffSelfAdapt, SigmoidAlphaDsaScheduler, MomentumDsaScheduler, Momentum
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
@@ -141,6 +141,12 @@ class DsaMiniBatchTrainer(MiniBatchTrainer):
             self.model.parameters(), lr_init=0.1, meta_lr=0.0001)
         self.scheduler = DsaScheduler(
             self.optimizier, self.model, self.train_loader)
+
+        # self.optimizier = Momentum(
+        #     self.model.parameters(), lr_init=0.1, meta_lr=0.0001)
+        # self.scheduler = MomentumDsaScheduler(
+        #     self.optimizier, self.model, self.train_loader)
+
         # self.optimizier = SigmoidAlphaMiniDiffSelfAdapt(
         #     self.model.parameters(), lr_init=0, meta_lr=0.5)
         # self.scheduler = SigmoidAlphaDsaScheduler(
