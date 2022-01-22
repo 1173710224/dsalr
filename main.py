@@ -96,6 +96,18 @@ class MlpExp():
         return
 
 
+class EnhanceExp():
+    def __init__(self) -> None:
+        pass
+
+    def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM, pre_train=True):
+        trainer = ModelEnhanceTrainer(model_name, dataset)
+        trainer.train(opt)
+        trainer.save_metrics(
+            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
+        return
+
+
 class SumExp():
     def __init__(self) -> None:
         self.trainer = SumTrainer()
