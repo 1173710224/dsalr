@@ -41,7 +41,8 @@ class CnnExp():
         return
 
     def find_best_model(self, model_name=RESNET, dataset=CIFAR10):
-
+        trainer = BestModelRecoder(model_name, dataset)
+        trainer.train()
         return
 
 
