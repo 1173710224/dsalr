@@ -297,15 +297,13 @@ class Trainer():
         for i in range(EPOCHSDENSE):
             self.model.train()
             preds = self.model(self.x)
-            # loss = F.cross_entropy(preds, self.y.long())
-            loss = F.mse_loss(torch.softmax(preds, 1),
-                              F.one_hot(self.y.long()).float())
-            if loss.item() < 0.001:
-                break
+            loss = F.cross_entropy(preds, self.y.long())
+            # loss = F.mse_loss(torch.softmax(preds, 1),
+                            #   F.one_hot(self.y.long()).float())
             self.optimizer.zero_grad()
             loss.backward()
-            # self.optimizer.step()
-            self.optimizer.step(self.model, self.x, self.y.long())
+            self.optimizer.step()
+            # self.optimizer.step(self.model, self.x, self.y.long())
             self.record_metrics(loss.item())
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizer.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4)))
