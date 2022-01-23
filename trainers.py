@@ -240,41 +240,6 @@ class MiniBatchTrainer():
                                                                                                                      round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
         return
 
-    def momentum_dsa_train(self, opt):
-        self.model.reset_parameters()
-        self.optimizier = utils.get_opt(opt, self.model)
-        lr_schedular = utils.get_scheduler(opt, self.optimizier)
-        epochs = MINIBATCHEPOCHS
-        try:
-            assert opt == DSA
-            epochs = int(epochs/2)
-        except:
-            pass
-        for i in range(epochs):
-            self.model.train()
-            loss_sum = 0
-            begin = time()
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda()
-                    label = label.cuda()
-                preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label)
-                self.optimizier.zero_grad()
-                loss.backward()
-                # self.optimizier.step()
-                self.optimizier.step(model=self.model, imgs=imgs, label=label)
-                self.record_conflict()
-                loss_sum += loss.item() * len(imgs)/self.num_image
-            self.record_metrics(loss_sum)
-            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
-                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
-            if i + 1 in [int(epochs/2), int(epochs * 0.75)]:
-                for i in range(len(self.optimizier.lr_matrix)):
-                    self.optimizier.lr_matrix[i] *= 0.1
-                self.optimizier.lr_upperbound *= 0.1
-        return
-
 
 class Trainer():
     def __init__(self, dataset) -> None:

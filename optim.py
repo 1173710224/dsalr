@@ -155,7 +155,9 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
     def step(self, model=None, imgs=None, label=None, closure=None):
         # collect old grad
         self.last_w_grad = []
+        max_grad = -1000000
         for i, param in enumerate(self.params):
+            max_grad = max(max_grad, param.grad.max().item())
             if param.grad != None:
                 self.last_w_grad.append(param.grad.clone())
             else:
@@ -164,18 +166,24 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
             param.data -= self.momentum * \
                 self.sum_grads[i] + \
                 torch.mul(self.lr_matrix[i], param.grad.clone())
+        for i in range(len(self.last_w_grad)):
+            self.last_w_grad[i] = self.last_w_grad[i] / max_grad * 0.1
         # collect new grad
         self.zero_grad()
         preds = model(imgs)
         loss = F.cross_entropy(preds, label)
         loss.backward()
         self.tmp_w_grad = []
+        max_grad = -1000000
         for param in self.params:
+            max_grad = max(max_grad, param.grad.max().item())
             if param.grad != None:
                 self.tmp_w_grad.append(param.grad.clone())
             else:
                 self.tmp_w_grad.append(torch.zeros(
                     param.size(), device=param.device))
+        for i in range(len(self.tmp_w_grad)):
+            self.tmp_w_grad[i] = self.tmp_w_grad[i] / max_grad * 0.1
         self.zero_grad()
         # roll back grad
         for i, param in enumerate(self.params):
