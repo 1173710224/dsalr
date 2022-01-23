@@ -163,7 +163,7 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
                     param.size(), device=param.device))
             param.data -= self.momentum * \
                 self.sum_grads[i] + \
-                torch.mul(self.lr_matrix[i], param.grad.clone())
+                torch.mul(0.2 * F.sigmoid(self.lr_matrix[i]), param.grad.clone())
         # collect new grad
         self.zero_grad()
         preds = model(imgs)
@@ -181,20 +181,22 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
         for i, param in enumerate(self.params):
             param.data += self.momentum * \
                 self.sum_grads[i] + \
-                torch.mul(self.lr_matrix[i], self.last_w_grad[i])
+                torch.mul(
+                    0.2 * F.sigmoid(self.lr_matrix[i]), self.last_w_grad[i])
         # update learning rate
         for i in range(len(self.last_w_grad)):
             self.lr_matrix[i] += self.meta_lr * \
-                torch.mul(self.last_w_grad[i], self.tmp_w_grad[i])
-            self.lr_matrix[i] = torch.where(self.lr_matrix[i] < 0, torch.zeros(
-                self.lr_matrix[i].size(), device=self.lr_matrix[i].device), self.lr_matrix[i])
-            self.lr_matrix[i] = torch.where(self.lr_matrix[i] > self.lr_upperbound, torch.ones(
-                self.lr_matrix[i].size(), device=self.lr_matrix[i].device) * self.lr_upperbound, self.lr_matrix[i])
+                self._d(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+            # self.lr_matrix[i] = torch.where(self.lr_matrix[i] < 0, torch.zeros(
+            #     self.lr_matrix[i].size(), device=self.lr_matrix[i].device), self.lr_matrix[i])
+            # self.lr_matrix[i] = torch.where(self.lr_matrix[i] > self.lr_upperbound, torch.ones(
+            #     self.lr_matrix[i].size(), device=self.lr_matrix[i].device) * self.lr_upperbound, self.lr_matrix[i])
         # update parameters
         for i, param in enumerate(self.params):
             self.sum_grads[i] = self.momentum * \
                 self.sum_grads[i] + \
-                torch.mul(self.lr_matrix[i], self.last_w_grad[i])
+                torch.mul(
+                    0.2 * F.sigmoid(self.lr_matrix[i]), self.last_w_grad[i])
             param.data -= self.sum_grads[i]
         # clean grad
         self.last_w_grad.clear()
