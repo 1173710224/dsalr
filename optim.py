@@ -146,6 +146,7 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
         super().__init__(params, lr_init, meta_lr)
         self.momentum = momentum
         self.weight_decay = weight_decay
+        self.lr_upperbound = lr_init
         self.sum_grads = []
         for param in self.params:
             self.sum_grads.append(torch.zeros(
@@ -187,8 +188,8 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
                 torch.mul(self.last_w_grad[i], self.tmp_w_grad[i])
             self.lr_matrix[i] = torch.where(self.lr_matrix[i] < 0, torch.zeros(
                 self.lr_matrix[i].size(), device=self.lr_matrix[i].device), self.lr_matrix[i])
-            self.lr_matrix[i] = torch.where(self.lr_matrix[i] > 0.1, torch.ones(
-                self.lr_matrix[i].size(), device=self.lr_matrix[i].device) * 0.1, self.lr_matrix[i])
+            self.lr_matrix[i] = torch.where(self.lr_matrix[i] > self.lr_upperbound, torch.ones(
+                self.lr_matrix[i].size(), device=self.lr_matrix[i].device) * self.lr_upperbound, self.lr_matrix[i])
         # update parameters
         for i, param in enumerate(self.params):
             self.sum_grads[i] = self.momentum * \

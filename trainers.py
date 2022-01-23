@@ -272,6 +272,7 @@ class MiniBatchTrainer():
             if i + 1 in [int(epochs/2), int(epochs * 0.75)]:
                 for i in range(len(self.optimizier.lr_matrix)):
                     self.optimizier.lr_matrix[i] *= 0.1
+                self.optimizier.lr_upperbound *= 0.1
         return
 
 
