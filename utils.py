@@ -240,7 +240,7 @@ def get_opt(opt, model, dataset=None):
             model.parameters())
     if opt == DSA:
         # return DiffSelfAdapt(model.parameters(), lr_init=-3, meta_lr=0.1)
-        return MomentumDiffSelfAdapt(model.parameters(), lr_init=0, meta_lr=0.1)
+        return MomentumDiffSelfAdapt(model.parameters(), lr_init=-6.9, meta_lr=0.1)
     if opt == HD:
         if dataset in SMALL:
             return HypergraDient(model.parameters(), lr_init=0.1, meta_lr=0.01)

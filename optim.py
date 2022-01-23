@@ -163,7 +163,8 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
                     param.size(), device=param.device))
             param.data -= self.momentum * \
                 self.sum_grads[i] + \
-                torch.mul(0.4 * F.sigmoid(self.lr_matrix[i]), param.grad.clone())
+                torch.mul(
+                    F.sigmoid(self.lr_matrix[i]), self._w_d(param.grad.clone()))
         # collect new grad
         self.zero_grad()
         preds = model(imgs)
@@ -182,7 +183,7 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
             param.data += self.momentum * \
                 self.sum_grads[i] + \
                 torch.mul(
-                    0.4 * F.sigmoid(self.lr_matrix[i]), self.last_w_grad[i])
+                    F.sigmoid(self.lr_matrix[i]), self._w_d(self.last_w_grad[i]))
         # update learning rate
         for i in range(len(self.last_w_grad)):
             self.lr_matrix[i] += self.meta_lr * \
@@ -196,7 +197,7 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
             self.sum_grads[i] = self.momentum * \
                 self.sum_grads[i] + \
                 torch.mul(
-                    0.4 * F.sigmoid(self.lr_matrix[i]), self.last_w_grad[i])
+                    F.sigmoid(self.lr_matrix[i]), self._w_d(self.last_w_grad[i]))
             param.data -= self.sum_grads[i]
         # clean grad
         self.last_w_grad.clear()
