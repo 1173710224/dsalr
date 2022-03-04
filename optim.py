@@ -161,10 +161,8 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
             else:
                 self.last_w_grad.append(torch.zeros(
                     param.size(), device=param.device))
-            param.data -= self.momentum * \
-                self.sum_grads[i] + \
-                torch.mul(
-                    F.sigmoid(self.lr_matrix[i]), self._w_d(param.grad.clone()))
+            param.data -= torch.mul(F.sigmoid(self.lr_matrix[i]), self._w_d(self.momentum *
+                                                                            self.sum_grads[i] + param.grad.clone()))
         # collect new grad
         self.zero_grad()
         preds = model(imgs)
@@ -180,25 +178,19 @@ class MomentumDiffSelfAdapt(DiffSelfAdapt):
         self.zero_grad()
         # roll back grad
         for i, param in enumerate(self.params):
-            param.data += self.momentum * \
-                self.sum_grads[i] + \
-                torch.mul(
-                    F.sigmoid(self.lr_matrix[i]), self._w_d(self.last_w_grad[i]))
+            param.data += torch.mul(F.sigmoid(self.lr_matrix[i]), self._w_d(self.momentum *
+                                                                            self.sum_grads[i] + self.last_w_grad[i]))
         # update learning rate
         for i in range(len(self.last_w_grad)):
-            self.lr_matrix[i] += self.meta_lr * \
-                self._d(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+            self.lr_matrix[i] += self.meta_lr * self._d(torch.mul(self.last_w_grad[i] + self.momentum * self.sum_grads[i], self.tmp_w_grad[i]))
             # self.lr_matrix[i] = torch.where(self.lr_matrix[i] < 0, torch.zeros(
             #     self.lr_matrix[i].size(), device=self.lr_matrix[i].device), self.lr_matrix[i])
             # self.lr_matrix[i] = torch.where(self.lr_matrix[i] > self.lr_upperbound, torch.ones(
             #     self.lr_matrix[i].size(), device=self.lr_matrix[i].device) * self.lr_upperbound, self.lr_matrix[i])
         # update parameters
         for i, param in enumerate(self.params):
-            self.sum_grads[i] = self.momentum * \
-                self.sum_grads[i] + \
-                torch.mul(
-                    F.sigmoid(self.lr_matrix[i]), self._w_d(self.last_w_grad[i]))
-            param.data -= self.sum_grads[i]
+            self.sum_grads[i] = self.momentum * self.sum_grads[i] + self.last_w_grad[i]
+            param.data -= torch.mul(F.sigmoid(self.lr_matrix[i]), self._w_d(self.sum_grads[i]))
         # clean grad
         self.last_w_grad.clear()
         self.tmp_w_grad.clear()
@@ -542,7 +534,7 @@ class FDecreaseDsa(Optimizer):
             self.lr_matrix.append(torch.ones(
                 param.size(), device=param.device) * lr_init)
         super(FDecreaseDsa, self).__init__(
-            self.params, defaults=dict(lr_init=lr_init, beta_1=beta_1, beta_2=beta_2))
+            self.params, defaults=dict(lr=pow(2, lr_init), beta_1=beta_1, beta_2=beta_2))
         pass
 
     def w_step_1(self):
@@ -560,12 +552,80 @@ class FDecreaseDsa(Optimizer):
             delta = self.d(self.params[i].grad) * self.d(self.base_grads[i])
             self.lr_matrix[i] += 1/2 * delta * \
                 (self.beta_1 + self.beta_2) + 1/2 * (self.beta_2 - self.beta_1)
+        lr_sum = 0
+        lr_num = 0
+        for lrs in self.lr_matrix:
+            lr_sum += lrs.sum().item()
+            lr_num += lrs.numel()
+        self.param_groups[0]["lr"] = round(pow(2, lr_sum/lr_num), 10)
         return
 
     def w_step_2(self):
         for i, param in enumerate(self.params):
             param.data = self.base_params[i] - torch.mul(
                 self.d(self.base_grads[i]), torch.pow(2, self.lr_matrix[i]))
+        self.base_params.clear()
+        self.base_grads.clear()
+        return
+
+    def d(self, tensor):
+        return tensor * (1/(tensor.abs() + EPSILON))
+
+
+class FDecreaseMomentumDsa(Optimizer):
+    def __init__(self, params, lr_init=-15, momentum=0.9, beta_1=0.6, beta_2=0.3) -> None:
+        self.params = list(params)
+        self.beta_1 = beta_1
+        self.beta_2 = beta_2
+        self.momentum = momentum
+        self.lr_init = lr_init
+        self.lr_matrix = []
+        self.sum_grads = []
+        for param in self.params:
+            self.lr_matrix.append(torch.ones(
+                param.size(), device=param.device) * lr_init)
+        for param in self.params:
+            self.sum_grads.append(torch.zeros(
+                param.size(), device=param.device))
+        super(FDecreaseMomentumDsa, self).__init__(
+            self.params, defaults=dict(lr=pow(2, lr_init), beta_1=beta_1, beta_2=beta_2))
+        pass
+
+    def w_step_1(self):
+        self.base_params = []
+        self.base_grads = []
+        for i, param in enumerate(self.params):
+            self.base_params.append(param.clone())
+            self.base_grads.append(param.grad.clone())
+            param.data -= (self.momentum * self.sum_grads[i] + torch.mul(torch.pow(2, self.lr_matrix[i]), self.base_grads[i]))
+        return
+
+    def lr_step(self):
+        for i in range(len(self.lr_matrix)):
+            delta = self.d(self.params[i].grad) * self.d(self.base_grads[i])
+            self.lr_matrix[i] += 1/2 * delta * \
+                (self.beta_1 + self.beta_2) + 1/2 * (self.beta_2 - self.beta_1)
+            self.lr_matrix[i] = torch.where(self.lr_matrix[i] > self.lr_init, torch.ones(
+                self.lr_matrix[i].size(), device=self.lr_matrix[i].device) * self.lr_init, self.lr_matrix[i])
+        lr_sum = 0
+        lr_num = 0
+        for lrs in self.lr_matrix:
+            lr_sum += lrs.sum().item()
+            lr_num += lrs.numel()
+        self.param_groups[0]["lr"] = round(pow(2, lr_sum/lr_num), 10)
+        self.lr_init = lr_sum / lr_num
+        return
+
+    def w_step_2(self):
+        for i, param in enumerate(self.params):
+            param.data = self.base_params[i] - (self.momentum * self.sum_grads[i] + torch.mul(torch.pow(2, self.lr_matrix[i]), self.base_grads[i]))
+        return
+
+    def commit(self):
+        for i in range(len(self.lr_matrix)):
+            self.sum_grads[i] = self.momentum * self.sum_grads[i] + torch.mul(torch.pow(2, self.lr_matrix[i]), self.base_grads[i])
+        self.base_params.clear()
+        self.base_grads.clear()
         return
 
     def d(self, tensor):

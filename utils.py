@@ -138,8 +138,8 @@ class Data():
                 train_index.append(index)
             else:
                 test_index.append(index)
-        train_data = dataset.index_select(0, torch.tensor(train_index))
-        test_data = dataset.index_select(0, torch.tensor(test_index))
+        train_data = dataset.index_select(0, torch.tensor(train_index).cuda())
+        test_data = dataset.index_select(0, torch.tensor(test_index).cuda())
         x_train = train_data[:, :-1]
         y_train = train_data[:, -1]
         x_test = test_data[:, :-1]
@@ -239,8 +239,8 @@ def get_opt(opt, model, dataset=None):
         return torch.optim.Adam(
             model.parameters())
     if opt == DSA:
-        # return DiffSelfAdapt(model.parameters(), lr_init=-3, meta_lr=0.1)
-        return MomentumDiffSelfAdapt(model.parameters(), lr_init=-6.9, meta_lr=0.1)
+        return DiffSelfAdapt(model.parameters(), lr_init=-3, meta_lr=0.1)
+        # return MomentumDiffSelfAdapt(model.parameters(), lr_init=-6.9, meta_lr=0.1, momentum=0.2)
     if opt == HD:
         if dataset in SMALL:
             return HypergraDient(model.parameters(), lr_init=0.1, meta_lr=0.01)
