@@ -299,7 +299,7 @@ class Trainer():
             preds = self.model(self.x)
             loss = F.cross_entropy(preds, self.y.long())
             # loss = F.mse_loss(torch.softmax(preds, 1),
-                            #   F.one_hot(self.y.long()).float())
+            #   F.one_hot(self.y.long()).float())
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -312,11 +312,11 @@ class Trainer():
 
     def _collect_wrong_cases(self, preds, y):
         flag = preds.max(1)[1].eq(y).double()
-        print("wrong cases: ", end=",")
-        for index in range(len(flag)):
-            if flag[index] == 0:
-                print(int(y[index].long()), end=",")
-        print()
+        # print("wrong cases: ", end=",")
+        # for index in range(len(flag)):
+        #     if flag[index] == 0:
+        #         print(int(y[index].long()), end=",")
+        # print()
         return
 
     def val(self):
