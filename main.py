@@ -13,13 +13,13 @@ class CnnExp():
 
     def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM, pre_train=True):
         trainer = MiniBatchTrainer(model_name, dataset)
-        # trainer.train(opt)
-        trainer.enhance_train(mode="batch", opt=opt)
+        trainer.train(opt)
+        # trainer.enhance_train(mode="batch", opt=opt)
         # trainer.momentum_dsa_train(opt)
         # trainer.fdecreasedsa_enhance_train()
         # trainer.fdecrease_train()
-        # trainer.save_metrics(
-        #     f"result/large/{model_name}_{dataset}_{opt}_debug.json")
+        trainer.save_metrics(
+            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
 
     def run(self):
@@ -175,9 +175,9 @@ if __name__ == "__main__":
     # # sum_exp.debug(SGD)
     # # sum_exp.debug(ADAM)
 
-    mlp_exp = MlpExp()
+    # mlp_exp = MlpExp()
     # mlp_exp.debug(IRIS, SGD)
-    mlp_exp.debug(WINE, SGD)
+    # mlp_exp.debug(WINE, SGD)
     # mlp_exp.debug(CAR, SGD)
     # mlp_exp.debug(AGARICUS, HD)
     # # mlp_exp.run()
@@ -195,12 +195,12 @@ if __name__ == "__main__":
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
 
-    # cnn_exp = CnnExp()
+    cnn_exp = CnnExp()
     # print("resnet dsa + dsa")
-    # cnn_exp.debug(dataset=MNIST, opt=DSA)
-    # cnn_exp.debug(dataset=SVHN, opt=DSA)
-    # cnn_exp.debug(dataset=CIFAR10, opt=DSA)
-    # cnn_exp.debug(dataset=CIFAR100, opt=DSA)
+    cnn_exp.debug(dataset=MNIST, opt=SGD)
+    cnn_exp.debug(dataset=SVHN, opt=SGD)
+    cnn_exp.debug(dataset=CIFAR10, opt=SGD)
+    cnn_exp.debug(dataset=CIFAR100, opt=SGD)
 
     # cnn_exp.debug(dataset=SVHN, opt=ADAM)
     # cnn_exp.debug(dataset=CIFAR10, opt=ADAM)

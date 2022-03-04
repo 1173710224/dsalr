@@ -58,8 +58,8 @@ class MiniBatchTrainer():
                 loss = F.cross_entropy(preds, label)
                 self.optimizier.zero_grad()
                 loss.backward()
-                # self.optimizier.step()
-                self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                self.optimizier.step()
+                # self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
