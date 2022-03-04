@@ -14,7 +14,10 @@ class CnnExp():
     def debug(self, model_name=RESNET, dataset=CIFAR10, opt=ADAM, pre_train=True):
         trainer = MiniBatchTrainer(model_name, dataset)
         # trainer.train(opt)
-        trainer.momentum_dsa_train(opt)
+        trainer.enhance_train(mode="batch", opt=opt)
+        # trainer.momentum_dsa_train(opt)
+        # trainer.fdecreasedsa_enhance_train()
+        # trainer.fdecrease_train()
         # trainer.save_metrics(
         #     f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
@@ -52,6 +55,7 @@ class MlpExp():
     def debug(self, dataset=IRIS, opt=ADAM):
         trainer = Trainer(dataset)
         trainer.train(opt)
+        # trainer.fdecrease_train()
         trainer.save_metrics(f"result/small/mlp_{dataset}_{opt}_debug.json")
         return
 

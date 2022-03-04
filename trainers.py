@@ -6,7 +6,7 @@ from torch.optim.adam import Adam
 from torch.optim.adamax import Adamax
 from const import *
 import torch.nn.functional as F
-from optim import DiffSelfAdapt, FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler, SigmoidAlphaMiniDiffSelfAdapt, SigmoidAlphaDsaScheduler, MomentumDsaScheduler, Momentum
+from optim import DiffSelfAdapt, FDecreaseDsa, MiniDiffSelfAdapt, DsaScheduler, SigmoidAlphaMiniDiffSelfAdapt, SigmoidAlphaDsaScheduler, MomentumDsaScheduler, Momentum, FDecreaseMomentumDsa
 import warnings
 from sklearn.metrics import precision_recall_fscore_support as metrics
 import numpy as np
@@ -216,7 +216,7 @@ class MiniBatchTrainer():
             pass
         elif mode != MINI and opt in [DSA]:
             self.optimizier = DiffSelfAdapt(
-                self.model.parameters(), lr_init=-6, meta_lr=1)
+                self.model.parameters(), lr_init=-11, meta_lr=1)
             lr_schedular = DsaScheduler(
                 self.optimizier, self.model, self.train_loader)
             for i in range(epochs):
@@ -236,8 +236,43 @@ class MiniBatchTrainer():
                 # self.optimizier.step()
                 lr_schedular.step()
                 self.optimizier.zero_grad()
-                print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
-                                                                                                                     round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+                print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4), round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(
+                    self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+        return
+
+    def fdecreasedsa_enhance_train(self, epochs=10):
+        self.load_model(self.base_model_path)
+        print("init accuracy: {}".format(self.val()[0]))
+        self.optimizier = FDecreaseDsa(self.model.parameters(), lr_init=-15)
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            begin = time()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(
+                    preds, label) * len(label) / self.num_image
+                loss.backward()
+            self.optimizier.w_step_1()
+            self.optimizier.zero_grad()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(
+                    preds, label) * len(label) / self.num_image
+                loss.backward()
+                loss_sum += loss.item()
+            self.optimizier.lr_step()
+            self.optimizier.w_step_2()
+            self.optimizier.zero_grad()
+            self.record_metrics(loss_sum)
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4), round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(
+                self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
         return
 
     def momentum_dsa_train(self, opt):
@@ -275,6 +310,43 @@ class MiniBatchTrainer():
             #     self.optimizier.lr_upperbound *= 0.1
         return
 
+    def fdecrease_train(self, epochs=200):
+        # self.optimizier = FDecreaseDsa(self.model.parameters(), lr_init=-12)
+        self.optimizier = FDecreaseMomentumDsa(self.model.parameters(), lr_init=-3.5)
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            begin = time()
+            times = 0
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(
+                    preds, label)
+                loss_sum += loss.item() * len(label) / self.num_image
+                loss.backward()
+                self.optimizier.w_step_1()
+                self.optimizier.zero_grad()
+                if torch.rand(2)[0].item() < 0.01:
+                    print("-", end="")
+                    preds = self.model(imgs)
+                    loss = F.cross_entropy(
+                        preds, label)
+                    loss.backward()
+                    self.optimizier.lr_step()
+                    self.optimizier.w_step_2()
+                    self.optimizier.zero_grad()
+                self.optimizier.commit()
+                # times += 1
+                # if times == 1:
+                #     break
+            self.record_metrics(loss_sum)
+            print("\nEpoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4), round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(
+                self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+        return
+
 
 class Trainer():
     def __init__(self, dataset) -> None:
@@ -299,11 +371,11 @@ class Trainer():
             preds = self.model(self.x)
             loss = F.cross_entropy(preds, self.y.long())
             # loss = F.mse_loss(torch.softmax(preds, 1),
-                            #   F.one_hot(self.y.long()).float())
+            #   F.one_hot(self.y.long()).float())
             self.optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
-            # self.optimizer.step(self.model, self.x, self.y.long())
+            # self.optimizer.step()
+            self.optimizer.step(self.model, self.x, self.y.long())
             self.record_metrics(loss.item())
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizer.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4)))
@@ -323,7 +395,7 @@ class Trainer():
         self.model.eval()
         x, y = self.test_data
         preds = self.model(x)
-        self._collect_wrong_cases(preds, y)
+        # self._collect_wrong_cases(preds, y)
         # loss = F.cross_entropy(preds, y.long())
         loss = F.mse_loss(torch.softmax(preds, 1), F.one_hot(y.long()).float())
         accu = torch.sum(preds.max(1)[1].eq(y).double())/len(y)
@@ -354,6 +426,29 @@ class Trainer():
     def save_metrics(self, path=""):
         with open(path, "w") as f:
             json.dump(self.state_dict, f)
+        return
+
+    def fdecrease_train(self):
+        self.optimizer = FDecreaseDsa(self.model.parameters(), lr_init=-9)
+        # self.optimizer = FDecreaseMomentumDsa(self.model.parameters(), lr_init=-3.5)
+        for i in range(1000):
+            self.model.train()
+            preds = self.model(self.x)
+            loss = loss = F.cross_entropy(preds, self.y.long())
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.w_step_1()
+            if torch.rand(2)[0].item() < 1:
+                preds = self.model(self.x)
+                loss = loss = F.cross_entropy(preds, self.y.long())
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.lr_step()
+                self.optimizer.w_step_2()
+            # self.optimizer.commit()
+            self.record_metrics(loss.item())
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizer.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4)))
         return
 
 
