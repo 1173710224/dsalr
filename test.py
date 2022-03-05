@@ -11,6 +11,7 @@
 #     pass
 
 import json
+from math import log2
 import numpy as np
 from utils import Data
 import torch
@@ -256,8 +257,9 @@ if __name__ == "__main__":
     # print(pow(2, -9))
     # print(pow(2, -9-0.001))
     # print(torch.sigmoid(torch.Tensor([-4.6])) * 0.1)
-    path = "result/large/resnet_{}_{}_debug.json".format(CIFAR100, HD)
-    with open(path, 'r') as f:
-        data = json.load(f)[CONFLICT]
-    print(sum(data)/len(data))
+    # path = "result/large/resnet_{}_{}_debug.json".format(CIFAR100, HD)
+    # with open(path, 'r') as f:
+    #     data = json.load(f)[CONFLICT]
+    # print(sum(data)/len(data))
+    print(-(4/9)*log2(4/9)-(5/9)*log2(5/9))
     pass
