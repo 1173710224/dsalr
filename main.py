@@ -197,10 +197,10 @@ if __name__ == "__main__":
 
     cnn_exp = CnnExp()
     # print("resnet dsa + dsa")
-    cnn_exp.debug(dataset=MNIST, opt=SGD)
-    cnn_exp.debug(dataset=SVHN, opt=SGD)
-    cnn_exp.debug(dataset=CIFAR10, opt=SGD)
-    cnn_exp.debug(dataset=CIFAR100, opt=SGD)
+    # cnn_exp.debug(dataset=MNIST, opt=DSA)
+    cnn_exp.debug(dataset=SVHN, opt=DSA)
+    cnn_exp.debug(dataset=CIFAR10, opt=DSA)
+    cnn_exp.debug(dataset=CIFAR100, opt=DSA)
 
     # cnn_exp.debug(dataset=SVHN, opt=ADAM)
     # cnn_exp.debug(dataset=CIFAR10, opt=ADAM)

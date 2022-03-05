@@ -239,7 +239,7 @@ def get_opt(opt, model, dataset=None):
         return torch.optim.Adam(
             model.parameters())
     if opt == DSA:
-        return DiffSelfAdapt(model.parameters(), lr_init=-3, meta_lr=0.1)
+        return DiffSelfAdapt(model.parameters(), lr_init=-4.6, meta_lr=0.1)
         # return MomentumDiffSelfAdapt(model.parameters(), lr_init=-6.9, meta_lr=0.1, momentum=0.2)
     if opt == HD:
         if dataset in SMALL:

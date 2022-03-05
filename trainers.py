@@ -41,11 +41,11 @@ class MiniBatchTrainer():
         self.optimizier = utils.get_opt(opt, self.model)
         lr_schedular = utils.get_scheduler(opt, self.optimizier)
         epochs = MINIBATCHEPOCHS
-        try:
-            assert opt == DSA
-            epochs = int(epochs/2)
-        except:
-            pass
+        # try:
+        #     assert opt == DSA
+        #     epochs = int(epochs/2)
+        # except:
+        #     pass
         for i in range(epochs):
             self.model.train()
             loss_sum = 0
@@ -58,8 +58,8 @@ class MiniBatchTrainer():
                 loss = F.cross_entropy(preds, label)
                 self.optimizier.zero_grad()
                 loss.backward()
-                self.optimizier.step()
-                # self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                # self.optimizier.step()
+                self.optimizier.step(model=self.model, imgs=imgs, label=label)
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
