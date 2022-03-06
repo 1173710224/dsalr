@@ -275,7 +275,7 @@ def get_res(dataset, opt):
 
 
 def get_scheduler(opt, optimizer):
-    if opt in [SGD, MOMENTUM, ADAM]:
+    if opt in [SGD, MOMENTUM, ADAM, ADAMAX]:
         return torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                     milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
     return None
