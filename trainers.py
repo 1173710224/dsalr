@@ -1,3 +1,4 @@
+from enum import auto
 import json
 import pickle
 import copy
@@ -30,6 +31,7 @@ class MiniBatchTrainer():
         self.test_loader = test_loader
         self.num_image = utils.num_image(train_loader)  # get num of image
         # init model
+        self.model_name = model_name
         self.model = get_model(model_name, input_channel, ndim, nclass)
         self.base_model_path = "model/{}_sgd".format(self.dataset)
         # init state dict
@@ -41,6 +43,9 @@ class MiniBatchTrainer():
         self.optimizier = utils.get_opt(opt, self.model)
         lr_schedular = utils.get_scheduler(opt, self.optimizier)
         epochs = MINIBATCHEPOCHS
+        auto_diff = False
+        if opt in [DSA, HD]:
+            auto_diff = True
         # try:
         #     assert opt == DSA
         #     epochs = int(epochs/2)
@@ -58,8 +63,10 @@ class MiniBatchTrainer():
                 loss = F.cross_entropy(preds, label)
                 self.optimizier.zero_grad()
                 loss.backward()
-                # self.optimizier.step()
-                self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                if auto_diff:
+                    self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                else:
+                    self.optimizier.step()
                 self.record_conflict()
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.record_metrics(loss_sum)
@@ -203,6 +210,37 @@ class MiniBatchTrainer():
                 current_opt_accu = self.state_dict[ACCU][-1]
                 self.save_model(path="model/{}_sgd".format(self.dataset))
                 print("save done!")
+        return
+
+    def pre_train(self, opt):
+        self.model.reset_parameters()
+        self.optimizier = utils.get_opt(opt, self.model)
+        lr_schedular = utils.get_scheduler(opt, self.optimizier)
+        current_opt_accu = 0
+        epochs = MINIBATCHEPOCHS
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            begin = time()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda()
+                    label = label.cuda()
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizier.zero_grad()
+                loss.backward()
+                self.optimizier.step()
+                self.record_conflict()
+                loss_sum += loss.item() * len(imgs)/self.num_image
+            self.record_metrics(loss_sum)
+            print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
+                  round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
+            lr_schedular.step()
+            if self.state_dict[ACCU][-1] > current_opt_accu:
+                current_opt_accu = self.state_dict[ACCU][-1]
+                self.save_model(path="model/pretrained_{}_on_{}".format(self.model_name, self.dataset))
+                print("step save!")
         return
 
     def enhance_train(self, epochs=10, mode=MINI, opt=SGD):

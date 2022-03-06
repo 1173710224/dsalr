@@ -656,7 +656,6 @@ class HypergraDient(Optimizer):
         self.param_groups[0]["lr"] = self.lr
         for i, param in enumerate(self.params):
             param.data -= param.grad * self.lr
-        print(self.lr_grad)
         return
 
     def _lr_autograd(self):

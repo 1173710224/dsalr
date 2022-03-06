@@ -41,8 +41,11 @@ class CnnExp():
         return
 
     def find_best_model(self, model_name=RESNET, dataset=CIFAR10):
-        trainer = BestModelRecoder(model_name, dataset)
-        trainer.train(SGD)
+        trainer = MiniBatchTrainer(model_name, dataset)
+        opt = MOMENTUM
+        if model_name in [FMP, DNN]:
+            opt = ADAMAX
+        trainer.pre_train(opt)
         return
 
 
@@ -185,7 +188,14 @@ if __name__ == "__main__":
     # # mlp_exp.run_1000epochs()
 
     # cnn_exp = CnnExp()
+    # cnn_exp.find_best_model(DNN, MNIST)
+    # cnn_exp.find_best_model(DNN, SVHN)
     # cnn_exp.find_best_model(RESNET, MNIST)
+    # cnn_exp.find_best_model(RESNET, SVHN)
+    # cnn_exp.find_best_model(RESNET, CIFAR10)
+    # cnn_exp.find_best_model(RESNET, CIFAR100)
+    # cnn_exp.find_best_model(FMP, MNIST)
+    # cnn_exp.find_best_model(FMP, SVHN)
     # print("resnet momentum")
     # cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
     # print("fmp momentum")
@@ -196,11 +206,16 @@ if __name__ == "__main__":
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
 
     cnn_exp = CnnExp()
-    # print("resnet dsa + dsa")
-    # cnn_exp.debug(dataset=MNIST, opt=DSA)
-    cnn_exp.debug(dataset=SVHN, opt=DSA)
-    cnn_exp.debug(dataset=CIFAR10, opt=DSA)
-    cnn_exp.debug(dataset=CIFAR100, opt=DSA)
+    cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=HD)
+    cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=HD)
+    cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAM)
+    cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAMAX)
+    cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=HD)
+    cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=HD)
+    cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=ADAM)
+    # cnn_exp.debug(dataset=SVHN, opt=DSA)
+    # cnn_exp.debug(dataset=CIFAR10, opt=DSA)
+    # cnn_exp.debug(dataset=CIFAR100, opt=DSA)
 
     # cnn_exp.debug(dataset=SVHN, opt=ADAM)
     # cnn_exp.debug(dataset=CIFAR10, opt=ADAM)
