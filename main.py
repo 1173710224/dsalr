@@ -118,17 +118,18 @@ class SumExp():
         pass
 
     def run(self):
-        for num in SUMNUMS:
-            self.trainer.reset_data(num)
-            for opt in OPTIMIZERS:
-                if opt == DSA:
-                    continue
-                self.trainer.train(opt)
+        # for num in SUMNUMS:
+        num = 10000
+        self.trainer.reset_data(num)
+        for opt in OPTIMIZERS:
+            if opt in [DSA, HD]:
+                continue
+            self.trainer.train(opt)
         return
 
     def debug(self, opt=ADAM):
-        if opt == DSA:
-            self.trainer.fdsa_train()
+        if opt in [DSA, HD]:
+            self.trainer.dsa_train(opt)
         else:
             self.trainer.train(opt)
         return
@@ -171,18 +172,19 @@ if __name__ == "__main__":
     # track_exp.debug(DSA)
     # track_exp.run()
 
-    # sum_exp = SumExp()
-    # # sum_exp.trainer.reset_data(100000)
-    # # sum_exp.debug(DSA)
+    sum_exp = SumExp()
+    sum_exp.trainer.reset_data(100000)
+    # sum_exp.debug(DSA)
     # sum_exp.run()
-    # # sum_exp.debug(SGD)
-    # # sum_exp.debug(ADAM)
+    sum_exp.debug(MOMENTUM)
+    # sum_exp.debug(ADAM)
 
     # mlp_exp = MlpExp()
-    # mlp_exp.debug(IRIS, SGD)
-    # mlp_exp.debug(WINE, SGD)
-    # mlp_exp.debug(CAR, SGD)
-    # mlp_exp.debug(AGARICUS, HD)
+    # opt = ADAM
+    # mlp_exp.debug(IRIS, opt)
+    # mlp_exp.debug(WINE, opt)
+    # mlp_exp.debug(CAR, opt)
+    # mlp_exp.debug(AGARICUS, opt)
     # # mlp_exp.run()
     # # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
@@ -205,14 +207,14 @@ if __name__ == "__main__":
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
 
-    cnn_exp = CnnExp()
-    cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=HD)
-    cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=HD)
-    cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAM)
-    cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAMAX)
-    cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=HD)
-    cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=HD)
-    cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=ADAM)
+    # cnn_exp = CnnExp()
+    # cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=HD)
+    # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=HD)
+    # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAM)
+    # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAMAX)
+    # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=HD)
+    # cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=HD)
+    # cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=ADAM)
     # cnn_exp.debug(dataset=SVHN, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR10, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR100, opt=DSA)

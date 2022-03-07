@@ -1,3 +1,4 @@
+from zmq import device
 from const import *
 import sklearn.preprocessing as sp
 from sklearn.model_selection import train_test_split
@@ -138,8 +139,10 @@ class Data():
                 train_index.append(index)
             else:
                 test_index.append(index)
-        train_data = dataset.index_select(0, torch.tensor(train_index).cuda())
-        test_data = dataset.index_select(0, torch.tensor(test_index).cuda())
+        train_data = dataset.index_select(
+            0, torch.tensor(train_index, device=self.device))
+        test_data = dataset.index_select(
+            0, torch.tensor(test_index, device=self.device))
         x_train = train_data[:, :-1]
         y_train = train_data[:, -1]
         x_test = test_data[:, :-1]
@@ -239,7 +242,7 @@ def get_opt(opt, model, dataset=None):
         return torch.optim.Adam(
             model.parameters())
     if opt == DSA:
-        return DiffSelfAdapt(model.parameters(), lr_init=-4.6, meta_lr=0.1)
+        return DiffSelfAdapt(model.parameters(), lr_init=0, meta_lr=0.1)
         # return MomentumDiffSelfAdapt(model.parameters(), lr_init=-6.9, meta_lr=0.1, momentum=0.2)
     if opt == HD:
         if dataset in SMALL:
@@ -258,7 +261,7 @@ def get_opt(opt, model, dataset=None):
     if opt == SGD:
         return torch.optim.SGD(model.parameters(), lr=0.1)
     if opt == RMSPROP:
-        return torch.optim.RMSprop(model.parameters())
+        return torch.optim.RMSprop(model.parameters(), lr=0.001)
     if opt == MOMENTUM:
         return torch.optim.SGD(model.parameters(), lr=0.1, momentum=P_MOMENTUM, weight_decay=0.0001)
     return None

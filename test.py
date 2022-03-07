@@ -261,5 +261,5 @@ if __name__ == "__main__":
     # with open(path, 'r') as f:
     #     data = json.load(f)[CONFLICT]
     # print(sum(data)/len(data))
-    print(-(4/9)*log2(4/9)-(5/9)*log2(5/9))
+    print(torch.sigmoid(torch.Tensor([-4.6])) * 0.1)
     pass
