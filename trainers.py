@@ -415,8 +415,8 @@ class Trainer():
             #   F.one_hot(self.y.long()).float())
             self.optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
-            # self.optimizer.step(self.model, self.x, self.y.long())
+            # self.optimizer.step()
+            self.optimizer.step(self.model, self.x, self.y.long())
             self.record_metrics(loss.item())
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}".format(i+1, round(loss.item(), 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizer.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4)))
@@ -514,15 +514,15 @@ class SumTrainer():
         optimizer = utils.get_opt(opt, self.model)
         for i in range(SUMEPOCH):
             preds = self.model(self.x)
-            # loss = F.mse_loss(preds, self.y)
-            # optimizer.zero_grad()
-            # loss.backward()
-            # optimizer.step()
-            # self.loss.append(loss.item())
-            # for param in self.model.parameters():
-            # self.w.append([param[0][0].item(), param[0][1].item(),
-            #   param[0][2].item(), param[0][3].item()])
-            # print(i, loss.item(), self.w[-1])
+            loss = F.mse_loss(preds.t(), self.y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            self.loss.append(loss.item())
+            for param in self.model.parameters():
+                self.w.append([param[0][0].item(), param[0][1].item(),
+                              param[0][2].item(), param[0][3].item()])
+            print(i, loss.item(), self.w[-1])
         ans = {TRAINLOSS: self.loss, "w": self.w}
         with open(f"result/sum/{opt}.json", "w") as f:
             json.dump(ans, f)
@@ -536,7 +536,7 @@ class SumTrainer():
         optimizer = utils.get_opt(opt, self.model)
         for i in range(SUMEPOCH):
             preds = self.model(self.x)
-            loss = F.mse_loss(preds, self.y)
+            loss = F.mse_loss(preds.t(), self.y)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step(self.model, self.x, self.y)
@@ -570,20 +570,40 @@ class TrackTrainer():
         self.model.train()
         self.model.reset_parameters()
         optimizer = utils.get_opt(opt, self.model)
+        self.tracks.append((self.model.w1.item(),
+                            self.model.w2.item()))
         for _ in range(TRACKEPOCH):
             preds = self.model()
             optimizer.zero_grad()
             preds.backward()
             optimizer.step()
-            self.tracks.append((self.model.w1.cpu().numpy(),
-                               self.model.w2.cpu().numpy()))
-        with open(f"result/track/{opt}", "wb") as f:
-            pickle.dump(self.tracks, f)
+            self.tracks.append((self.model.w1.item(),
+                               self.model.w2.item()))
+        with open(f"result/track/{opt}_{B}.json", "w") as f:
+            json.dump(self.tracks, f)
+        return
+
+    def dsa_train(self, opt=ADAM):
+        self.tracks = []
+        self.model.train()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(opt, self.model)
+        self.tracks.append((self.model.w1.item(),
+                            self.model.w2.item()))
+        for _ in range(TRACKEPOCH):
+            preds = self.model()
+            optimizer.zero_grad()
+            preds.backward()
+            optimizer.step(self.model, None, None)
+            self.tracks.append((self.model.w1.item(),
+                               self.model.w2.item()))
+        with open(f"result/track/{opt}_{B}.json", "w") as f:
+            json.dump(self.tracks, f)
         return
 
 
 if __name__ == "__main__":
-    print(F.mse_loss(torch.Tensor([1, 2, 3]), torch.Tensor([1, ])))
+    # print(F.mse_loss(torch.Tensor([[1], [2], [3]]), torch.Tensor([1, 2, 3])))
     # data = Data()
     # # train_data, test_data, ndim, nclass = data.load_car()
     # train_data, test_data, ndim, nclass = data.load_wine()

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import pickle
-from optim import FDecreaseDsa, HypergraDient, DiffSelfAdapt, MomentumDiffSelfAdapt
+from optim import DiffSelfAdaptDagger, DiffSelfAdaptDotplus, FDecreaseDsa, HypergraDient, DiffSelfAdapt, MomentumDiffSelfAdapt
 
 
 class Data():
@@ -240,30 +240,32 @@ def num_image(loader):
 def get_opt(opt, model, dataset=None):
     if opt == ADAM:
         return torch.optim.Adam(
-            model.parameters())
+            model.parameters(), lr=0.001)
     if opt == DSA:
-        return DiffSelfAdapt(model.parameters(), lr_init=0, meta_lr=0.1)
+        return DiffSelfAdaptDotplus(model.parameters(), lr_init=-4.6, meta_lr=0.3)
+        # return DiffSelfAdaptDagger(model.parameters(), lr_init=-4.6, meta_lr=0.1)
+        # return DiffSelfAdapt(model.parameters(), lr_init=-4.6, meta_lr=0.01)
         # return MomentumDiffSelfAdapt(model.parameters(), lr_init=-6.9, meta_lr=0.1, momentum=0.2)
     if opt == HD:
         if dataset in SMALL:
-            return HypergraDient(model.parameters(), lr_init=0.1, meta_lr=0.01)
-        return HypergraDient(model.parameters())
+            return HypergraDient(model.parameters())
+        return HypergraDient(model.parameters(), lr_init=0.001, meta_lr=1e-4)
     if opt == ADAMW:
-        return torch.optim.AdamW(model.parameters())
+        return torch.optim.AdamW(model.parameters(), lr=0.001)
 
     if opt == ADAMAX:
-        return torch.optim.Adamax(model.parameters())
+        return torch.optim.Adamax(model.parameters(), lr=0.001)
     if opt == ADAGRAD:
-        return torch.optim.Adagrad(model.parameters())
+        return torch.optim.Adagrad(model.parameters(), lr=0.001)
     if opt == ADADELTA:
         return torch.optim.Adadelta(model.parameters())
 
     if opt == SGD:
-        return torch.optim.SGD(model.parameters(), lr=0.1)
+        return torch.optim.SGD(model.parameters(), lr=0.001)
     if opt == RMSPROP:
         return torch.optim.RMSprop(model.parameters(), lr=0.001)
     if opt == MOMENTUM:
-        return torch.optim.SGD(model.parameters(), lr=0.1, momentum=P_MOMENTUM, weight_decay=0.0001)
+        return torch.optim.SGD(model.parameters(), lr=0.001, momentum=P_MOMENTUM, weight_decay=0.0001)
     return None
 
 

@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from scipy.interpolate import make_interp_spline
+import json
 
 
 class Parser():
@@ -87,9 +88,9 @@ class SumProcessor():
         pass
 
     def get_data(self, opt):
-        path = f"result/sum/{self.epoch}_{opt}"
+        path = f"result/sum/{opt}.json"
         with open(path, "rb") as f:
-            data = pickle.load(f)
+            data = json.load(f)
         return data
 
     def group_losses(self):
@@ -99,9 +100,9 @@ class SumProcessor():
             data = self.get_data(opt)
             losses[opt] = data[TRAINLOSS]
             print(len(losses[opt]))
-            for i in range(x_len):
-                if losses[opt][i] < 0.000001:
-                    losses[opt][i] = 0
+            # for i in range(x_len):
+            #     if losses[opt][i] < 0.000001:
+            #         losses[opt][i] = 0
         x = [i + 1 for i in range(x_len)]
         return x, losses
 
@@ -113,7 +114,8 @@ class SumProcessor():
         plt.yscale("log")
         plt.legend(fontsize=10)
         plt.tick_params(labelsize=15)
-        plt.savefig("loss_fig/{}{}.png".format(SUM, self.epoch))
+        # plt.savefig("loss_fig/{}{}.png".format(SUM, self.epoch))
+        plt.show()
         return
 
     def group_track(self, index=0):
@@ -189,7 +191,8 @@ class TrackProcessor():
 
 if __name__ == "__main__":
     sp = SumProcessor()
-    sp.plt_track(log="detail")
+    # sp.plt_track(log="detail")
+    sp.plt_loss()
 
     # tp = TrackProcessor()
     # # tp.plt_track(SGD)

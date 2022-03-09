@@ -29,19 +29,22 @@ class DiffSelfAdapt(Optimizer):
     def step(self, model=None, imgs=None, label=None, closure=None):
         self._w_step()
         preds = model(imgs)
-        # loss = F.cross_entropy(preds, label)
+        loss = F.cross_entropy(preds, label)
         # loss = F.mse_loss(torch.softmax(preds, 1),
         #                   F.one_hot(label).float())
-        loss = F.mse_loss(preds, label)
+        # loss = F.mse_loss(preds.t(), label)
+        # loss = preds.item()
         self.zero_grad()
         loss.backward()
+        # preds.backward()
         self._lr_w_step()
         # detect conflict
-        preds = model(imgs)
-        # newloss = F.cross_entropy(preds, label)
+        # preds = model()
+        newloss = F.cross_entropy(preds, label)
         # newloss = F.mse_loss(torch.softmax(preds, 1),
         #                      F.one_hot(label).float())
-        newloss = F.mse_loss(preds, label)
+        # newloss = F.mse_loss(preds.t(), label)
+        # newloss = preds.item()
         self.conflict_dict = {}
         self.conflict_dict[LOSSOLDLR] = loss.item()
         self.conflict_dict[LOSSNEWLR] = newloss.item()
@@ -137,6 +140,77 @@ class DiffSelfAdapt(Optimizer):
         tensor = torch.sigmoid(tensor) * 0.1
         return tensor
         # return torch.mul(tensor, tensor > 0.00001)
+
+
+class DiffSelfAdaptDagger(DiffSelfAdapt):
+    """
+    处理batch train或者单个batch数据的优化器，基于SGD
+    """
+
+    def __init__(self, params, lr_init=0.001, meta_lr=0.0001) -> None:
+        super(DiffSelfAdaptDagger, self).__init__(
+            params, lr_init=lr_init, meta_lr=meta_lr)
+        pass
+
+    def _lr_w_step(self):
+        # collect tmp_w_grad
+        self.tmp_w_grad = []
+        for param in self.params:
+            if param.grad != None:
+                self.tmp_w_grad.append(param.grad.clone())
+            else:
+                self.tmp_w_grad.append(torch.zeros(
+                    param.size(), device=param.device))
+        # rollback parameter
+        for i, param in enumerate(self.params):
+            param.data += torch.mul(
+                self._w_d(self.last_w_grad[i]), self._step_size(self.lr_matrix[i]))
+        # update learning rate
+        # single learning rate
+        grad = 0
+        # max_grad = 0
+        for i in range(len(self.last_w_grad)):
+            grad += torch.sum(
+                torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+            # max_grad = max(max_grad, torch.mul(
+            # self.last_w_grad[i], self.tmp_w_grad[i]).max().abs())
+        # print("grad: {}, max grad: {}".format(grad, max_grad))
+        for i in range(len(self.last_w_grad)):
+            self.lr_matrix[i] += self._d(grad) * self.meta_lr
+
+        # # parameter specific
+        # for i in range(len(self.last_w_grad)):
+        #     self.lr_matrix[i] = self.lr_matrix[i] + self.meta_lr * \
+        #         torch.mul(self.last_w_grad[i], self.tmp_w_grad[i])
+
+        # # parameter specific learning rate and direction
+        # for i in range(len(self.last_w_grad)):
+        #     self.lr_matrix[i] += self.meta_lr * \
+        #         self._d(torch.mul(self.last_w_grad[i], self.tmp_w_grad[i]))
+
+        # update parameter
+        for i, param in enumerate(self.params):
+            param.data -= torch.mul(
+                self._w_d(self.last_w_grad[i]), self._zero_step_size(self.lr_matrix[i]))
+        # clean grad
+        self.last_w_grad.clear()
+        self.tmp_w_grad.clear()
+        return
+
+
+class DiffSelfAdaptDotplus(DiffSelfAdapt):
+    """
+    处理batch train或者单个batch数据的优化器，基于SGD
+    """
+
+    def __init__(self, params, lr_init=0.001, meta_lr=0.0001) -> None:
+        super(DiffSelfAdaptDotplus, self).__init__(
+            params, lr_init=lr_init, meta_lr=meta_lr)
+        pass
+
+    def _w_d(self, tensor):
+        # return tensor
+        return tensor
 
 
 class MomentumDiffSelfAdapt(DiffSelfAdapt):
@@ -658,11 +732,13 @@ class HypergraDient(Optimizer):
 
     def step(self, model=None, imgs=None, label=None, closure=None):
         self._lr_autograd()
-        self.conflict_dict = self._detect_conflict(model, imgs, label, self.lr,
-                                                   self.lr - self.meta_lr * self.lr_grad)
+        # self.conflict_dict = self._detect_conflict(model, imgs, label, self.lr,
+        #                                            self.lr - self.meta_lr * self.lr_grad)
         self.lr -= self.meta_lr * self.lr_grad
+        print(self.lr_grad)
         self.param_groups[0]["lr"] = self.lr
         for i, param in enumerate(self.params):
+            print(param.grad)
             param.data -= param.grad * self.lr
         return
 
@@ -687,17 +763,19 @@ class HypergraDient(Optimizer):
         # calculate loss when using old learning rate
         for i, param in enumerate(model.parameters()):
             param.data -= param.grad * last_lr
-        preds = model(imgs)
-        loss = F.cross_entropy(preds, label)
-        res_dict[LOSSOLDLR] = loss.item()
+        preds = model()
+        # loss = F.mse_loss(preds.t(), label)
+        # loss = F.cross_entropy(preds, label)
+        res_dict[LOSSOLDLR] = preds.item()
         for i, param in enumerate(model.parameters()):
             param.data += param.grad * last_lr
         # calculate loss when using new learning rate
         for i, param in enumerate(model.parameters()):
             param.data -= param.grad * tmp_lr
-        preds = model(imgs)
-        loss = F.cross_entropy(preds, label)
-        res_dict[LOSSNEWLR] = loss.item()
+        preds = model()
+        # loss = F.mse_loss(preds.t(), label)
+        # loss = F.cross_entropy(preds, label)
+        res_dict[LOSSNEWLR] = preds.item()
         for i, param in enumerate(model.parameters()):
             param.data += param.grad * tmp_lr
         if res_dict[LOSSOLDLR] >= res_dict[LOSSNEWLR]:

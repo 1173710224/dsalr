@@ -85,7 +85,8 @@ SUM = "sum"
 
 # """hyper-params"""
 A = 1
-B = 95
+B = 1000
+# B = 95
 MINIBATCHEPOCHS = 200
 EPOCHSDENSE = 1000
 EPOCHSTEP1 = 15

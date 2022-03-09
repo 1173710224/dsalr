@@ -55,11 +55,12 @@ class MlpExp():
         self.data = Data()
         pass
 
-    def debug(self, dataset=IRIS, opt=ADAM):
+    def debug(self, dataset=IRIS, opt=ADAM, tag=None):
         trainer = Trainer(dataset)
         trainer.train(opt)
         # trainer.fdecrease_train()
-        trainer.save_metrics(f"result/small/mlp_{dataset}_{opt}_debug.json")
+        trainer.save_metrics(
+            f"result/small/mlp_{dataset}_{opt}{tag}_debug.json")
         return
 
     def run(self):
@@ -149,8 +150,8 @@ class TrackExp():
         return
 
     def debug(self, opt=ADAM):
-        if opt == DSA:
-            self.trainer.fdsa_train()
+        if opt in [DSA, HD]:
+            self.trainer.dsa_train(opt)
         else:
             self.trainer.train(opt)
         return
@@ -162,6 +163,14 @@ if __name__ == "__main__":
     # track_exp.trainer.model.reset_init(-1, 1)
     # track_exp.debug(SGD)
     # track_exp.debug(MOMENTUM)
+    # track_exp.debug(ADADELTA)
+    # track_exp.debug(ADAGRAD)
+    # track_exp.debug(RMSPROP)
+    # track_exp.debug(ADAM)
+    # track_exp.debug(ADAMW)
+    # track_exp.debug(ADAMAX)
+    # track_exp.debug(HD)
+    # track_exp.debug(DSA)
 
     # track_exp.debug(RMSPROP)
     # track_exp.debug(ADAGRAD)
@@ -172,17 +181,17 @@ if __name__ == "__main__":
     # track_exp.debug(DSA)
     # track_exp.run()
 
-    sum_exp = SumExp()
-    sum_exp.trainer.reset_data(100000)
+    # sum_exp = SumExp()
+    # sum_exp.trainer.reset_data(10000)
     # sum_exp.debug(DSA)
     # sum_exp.run()
-    sum_exp.debug(MOMENTUM)
-    # sum_exp.debug(ADAM)
+    # sum_exp.debug(RMSPROP)
+    # sum_exp.debug(ADAGRAD)
 
-    # mlp_exp = MlpExp()
-    # opt = ADAM
+    mlp_exp = MlpExp()
+    opt = DSA
     # mlp_exp.debug(IRIS, opt)
-    # mlp_exp.debug(WINE, opt)
+    mlp_exp.debug(CAR, opt, "dotplus")
     # mlp_exp.debug(CAR, opt)
     # mlp_exp.debug(AGARICUS, opt)
     # # mlp_exp.run()
