@@ -217,8 +217,7 @@ class MiniBatchTrainer():
         self.model.reset_parameters()
         self.optimizier = utils.get_opt(opt, self.model)
         lr_schedular = utils.get_scheduler(opt, self.optimizier)
-        current_opt_accu = 0
-        epochs = MINIBATCHEPOCHS
+        epochs = 180
         for i in range(epochs):
             self.model.train()
             loss_sum = 0
@@ -237,12 +236,12 @@ class MiniBatchTrainer():
             self.record_metrics(loss_sum)
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
-            lr_schedular.step()
-            if self.state_dict[ACCU][-1] > current_opt_accu:
-                current_opt_accu = self.state_dict[ACCU][-1]
-                self.save_model(
-                    path="model/pretrained_{}_on_{}".format(self.model_name, self.dataset))
-                print("step save!")
+            try:
+                lr_schedular.step()
+            except:
+                pass
+        self.save_model(
+            path="model/pretrained_{}_on_{}".format(self.model_name, self.dataset))
         return
 
     def enhance_train(self, epochs=10, mode=MINI, opt=SGD):
