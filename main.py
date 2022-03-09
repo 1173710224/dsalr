@@ -218,16 +218,6 @@ if __name__ == "__main__":
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
 
-<<<<<<< HEAD
-    # cnn_exp = CnnExp()
-    # cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=HD)
-    # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=HD)
-    # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAM)
-    # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=ADAMAX)
-    # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=HD)
-    # cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=HD)
-    # cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=ADAM)
-=======
     cnn_exp = CnnExp()
     # cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=HD)
     # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=HD)
@@ -259,7 +249,6 @@ if __name__ == "__main__":
     cnn_exp.debug(model_name=RESNET, dataset=CIFAR10, opt=opt)
     cnn_exp.debug(model_name=RESNET, dataset=CIFAR100, opt=opt)
 
->>>>>>> 0a488f4da8afa1232b8da47bbb429377c1ff8a46
     # cnn_exp.debug(dataset=SVHN, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR10, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR100, opt=DSA)
