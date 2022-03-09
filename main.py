@@ -46,6 +46,8 @@ class CnnExp():
         if model_name in [FMP, DNN]:
             opt = ADAMAX
         trainer.pre_train(opt)
+        trainer.save_metrics(
+            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
 
 
@@ -198,7 +200,7 @@ if __name__ == "__main__":
     # # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
-    # cnn_exp = CnnExp()
+    cnn_exp = CnnExp()
     # cnn_exp.find_best_model(DNN, MNIST)
     # cnn_exp.find_best_model(DNN, SVHN)
     # cnn_exp.find_best_model(RESNET, MNIST)
@@ -206,7 +208,7 @@ if __name__ == "__main__":
     # cnn_exp.find_best_model(RESNET, CIFAR10)
     # cnn_exp.find_best_model(RESNET, CIFAR100)
     # cnn_exp.find_best_model(FMP, MNIST)
-    # cnn_exp.find_best_model(FMP, SVHN)
+    cnn_exp.find_best_model(FMP, SVHN)
     # print("resnet momentum")
     # cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
     # print("fmp momentum")
@@ -216,6 +218,7 @@ if __name__ == "__main__":
     # print("resnet adam")
     # cnn_exp.debug(dataset=MNIST, opt=ADAM)
 
+<<<<<<< HEAD
     # cnn_exp = CnnExp()
     # cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=HD)
     # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=HD)
@@ -224,6 +227,39 @@ if __name__ == "__main__":
     # cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=HD)
     # cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=HD)
     # cnn_exp.debug(model_name=FMP, dataset=SVHN, opt=ADAM)
+=======
+    cnn_exp = CnnExp()
+    # cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=HD)
+    # cnn_exp.debug(model_name=DNN, dataset=SVHN, opt=HD)
+    cnn_exp.debug(model_name=FMP, dataset=MNIST, opt=ADAMAX)
+    cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=ADAM)
+    cnn_exp.debug(model_name=DNN, dataset=MNIST, opt=ADAMAX)
+    cnn_exp.debug(model_name=RESNET, dataset=MNIST, opt=RMSPROP)
+    cnn_exp.debug(model_name=RESNET, dataset=SVHN, opt=RMSPROP)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR10, opt=RMSPROP)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR100, opt=RMSPROP)
+    opt = ADADELTA
+    cnn_exp.debug(model_name=RESNET, dataset=MNIST, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=SVHN, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR10, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR100, opt=opt)
+    opt = ADAGRAD
+    cnn_exp.debug(model_name=RESNET, dataset=MNIST, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=SVHN, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR10, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR100, opt=opt)
+    opt = ADAMW
+    cnn_exp.debug(model_name=RESNET, dataset=MNIST, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=SVHN, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR10, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR100, opt=opt)
+    opt = ADAMAX
+    cnn_exp.debug(model_name=RESNET, dataset=MNIST, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=SVHN, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR10, opt=opt)
+    cnn_exp.debug(model_name=RESNET, dataset=CIFAR100, opt=opt)
+
+>>>>>>> 0a488f4da8afa1232b8da47bbb429377c1ff8a46
     # cnn_exp.debug(dataset=SVHN, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR10, opt=DSA)
     # cnn_exp.debug(dataset=CIFAR100, opt=DSA)
