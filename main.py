@@ -40,14 +40,12 @@ class CnnExp():
                     f"result/big/{self.model_name}_{dataset}_{opt}")
         return
 
-    def find_best_model(self, model_name=RESNET, dataset=CIFAR10):
+    def find_base_model(self, model_name=RESNET, dataset=CIFAR10):
         trainer = MiniBatchTrainer(model_name, dataset)
         opt = MOMENTUM
         if model_name in [FMP, DNN]:
             opt = ADAMAX
         trainer.pre_train(opt)
-        trainer.save_metrics(
-            f"result/large/{model_name}_{dataset}_{opt}_debug.json")
         return
 
 
@@ -57,11 +55,12 @@ class MlpExp():
         self.data = Data()
         pass
 
-    def debug(self, dataset=IRIS, opt=ADAM):
+    def debug(self, dataset=IRIS, opt=ADAM, tag=None):
         trainer = Trainer(dataset)
         trainer.train(opt)
         # trainer.fdecrease_train()
-        trainer.save_metrics(f"result/small/mlp_{dataset}_{opt}_debug.json")
+        trainer.save_metrics(
+            f"result/small/mlp_{dataset}_{opt}{tag}_debug.json")
         return
 
     def run(self):
@@ -120,17 +119,18 @@ class SumExp():
         pass
 
     def run(self):
-        for num in SUMNUMS:
-            self.trainer.reset_data(num)
-            for opt in OPTIMIZERS:
-                if opt == DSA:
-                    continue
-                self.trainer.train(opt)
+        # for num in SUMNUMS:
+        num = 10000
+        self.trainer.reset_data(num)
+        for opt in OPTIMIZERS:
+            if opt in [DSA, HD]:
+                continue
+            self.trainer.train(opt)
         return
 
     def debug(self, opt=ADAM):
-        if opt == DSA:
-            self.trainer.fdsa_train()
+        if opt in [DSA, HD]:
+            self.trainer.dsa_train(opt)
         else:
             self.trainer.train(opt)
         return
@@ -150,8 +150,8 @@ class TrackExp():
         return
 
     def debug(self, opt=ADAM):
-        if opt == DSA:
-            self.trainer.fdsa_train()
+        if opt in [DSA, HD]:
+            self.trainer.dsa_train(opt)
         else:
             self.trainer.train(opt)
         return
@@ -163,6 +163,14 @@ if __name__ == "__main__":
     # track_exp.trainer.model.reset_init(-1, 1)
     # track_exp.debug(SGD)
     # track_exp.debug(MOMENTUM)
+    # track_exp.debug(ADADELTA)
+    # track_exp.debug(ADAGRAD)
+    # track_exp.debug(RMSPROP)
+    # track_exp.debug(ADAM)
+    # track_exp.debug(ADAMW)
+    # track_exp.debug(ADAMAX)
+    # track_exp.debug(HD)
+    # track_exp.debug(DSA)
 
     # track_exp.debug(RMSPROP)
     # track_exp.debug(ADAGRAD)
@@ -174,30 +182,31 @@ if __name__ == "__main__":
     # track_exp.run()
 
     # sum_exp = SumExp()
-    # # sum_exp.trainer.reset_data(100000)
-    # # sum_exp.debug(DSA)
+    # sum_exp.trainer.reset_data(10000)
+    # sum_exp.debug(DSA)
     # sum_exp.run()
-    # # sum_exp.debug(SGD)
-    # # sum_exp.debug(ADAM)
+    # sum_exp.debug(RMSPROP)
+    # sum_exp.debug(ADAGRAD)
 
     # mlp_exp = MlpExp()
-    # mlp_exp.debug(IRIS, SGD)
-    # mlp_exp.debug(WINE, SGD)
-    # mlp_exp.debug(CAR, SGD)
-    # mlp_exp.debug(AGARICUS, HD)
+    # opt = DSA
+    # mlp_exp.debug(IRIS, opt)
+    # mlp_exp.debug(CAR, opt, "dotplus")
+    # mlp_exp.debug(CAR, opt)
+    # mlp_exp.debug(AGARICUS, opt)
     # # mlp_exp.run()
     # # mlp_exp.debug_1000epochs(WINE, DSA)
     # # mlp_exp.run_1000epochs()
 
     cnn_exp = CnnExp()
-    cnn_exp.find_best_model(DNN, MNIST)
-    cnn_exp.find_best_model(DNN, SVHN)
-    cnn_exp.find_best_model(RESNET, MNIST)
-    cnn_exp.find_best_model(RESNET, SVHN)
-    cnn_exp.find_best_model(RESNET, CIFAR10)
-    cnn_exp.find_best_model(RESNET, CIFAR100)
-    cnn_exp.find_best_model(FMP, MNIST)
-    cnn_exp.find_best_model(FMP, SVHN)
+    cnn_exp.find_base_model(DNN, MNIST)
+    cnn_exp.find_base_model(DNN, SVHN)
+    cnn_exp.find_base_model(RESNET, MNIST)
+    cnn_exp.find_base_model(RESNET, SVHN)
+    cnn_exp.find_base_model(RESNET, CIFAR10)
+    cnn_exp.find_base_model(RESNET, CIFAR100)
+    cnn_exp.find_base_model(FMP, MNIST)
+    cnn_exp.find_base_model(FMP, SVHN)
     # print("resnet momentum")
     # cnn_exp.debug(dataset=MNIST, opt=MOMENTUM)
     # print("fmp momentum")

@@ -64,7 +64,8 @@ class MiniBatchTrainer():
                 self.optimizier.zero_grad()
                 loss.backward()
                 if auto_diff:
-                    self.optimizier.step(model=self.model, imgs=imgs, label=label)
+                    self.optimizier.step(
+                        model=self.model, imgs=imgs, label=label)
                 else:
                     self.optimizier.step()
                 self.record_conflict()
@@ -216,8 +217,7 @@ class MiniBatchTrainer():
         self.model.reset_parameters()
         self.optimizier = utils.get_opt(opt, self.model)
         lr_schedular = utils.get_scheduler(opt, self.optimizier)
-        current_opt_accu = 0
-        epochs = MINIBATCHEPOCHS
+        epochs = 180
         for i in range(epochs):
             self.model.train()
             loss_sum = 0
@@ -236,11 +236,12 @@ class MiniBatchTrainer():
             self.record_metrics(loss_sum)
             print("Epoch~{}->train_loss:{}, val_loss:{}, val_accu:{}, lr:{}, conflict:{}/{}={}, time:{}s".format(i+1, round(loss_sum, 4),
                   round(self.state_dict[VALLOSS][-1], 4), round(self.state_dict[ACCU][-1], 4), self.optimizier.param_groups[0]['lr'], sum(self.state_dict[CONFLICT]), len(self.state_dict[CONFLICT]), round(sum(self.state_dict[CONFLICT])/(len(self.state_dict[CONFLICT]) + EPSILON), 4), round(time() - begin, 4)))
-            lr_schedular.step()
-            if self.state_dict[ACCU][-1] > current_opt_accu:
-                current_opt_accu = self.state_dict[ACCU][-1]
-                self.save_model(path="model/pretrained_{}_on_{}".format(self.model_name, self.dataset))
-                print("step save!")
+            try:
+                lr_schedular.step()
+            except:
+                pass
+        self.save_model(
+            path="model/pretrained_{}_on_{}".format(self.model_name, self.dataset))
         return
 
     def enhance_train(self, epochs=10, mode=MINI, opt=SGD):
@@ -350,7 +351,8 @@ class MiniBatchTrainer():
 
     def fdecrease_train(self, epochs=200):
         # self.optimizier = FDecreaseDsa(self.model.parameters(), lr_init=-12)
-        self.optimizier = FDecreaseMomentumDsa(self.model.parameters(), lr_init=-3.5)
+        self.optimizier = FDecreaseMomentumDsa(
+            self.model.parameters(), lr_init=-3.5)
         for i in range(epochs):
             self.model.train()
             loss_sum = 0
@@ -505,18 +507,46 @@ class SumTrainer():
 
     def train(self, opt=ADAM):
         self.loss = []
+        self.w = []
         self.model.train()
         self.model.reset_parameters()
         optimizer = utils.get_opt(opt, self.model)
-        for _ in range(SUMEPOCH):
+        for i in range(SUMEPOCH):
             preds = self.model(self.x)
-            loss = F.mse_loss(preds, self.y)
+            loss = F.mse_loss(preds.t(), self.y)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             self.loss.append(loss.item())
-        with open(f"result/sum/{self.data_num}_{opt}", "wb") as f:
-            pickle.dump(self.loss, f)
+            for param in self.model.parameters():
+                self.w.append([param[0][0].item(), param[0][1].item(),
+                              param[0][2].item(), param[0][3].item()])
+            print(i, loss.item(), self.w[-1])
+        ans = {TRAINLOSS: self.loss, "w": self.w}
+        with open(f"result/sum/{opt}.json", "w") as f:
+            json.dump(ans, f)
+        return
+
+    def dsa_train(self, opt=HD):
+        self.loss = []
+        self.w = []
+        self.model.train()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(opt, self.model)
+        for i in range(SUMEPOCH):
+            preds = self.model(self.x)
+            loss = F.mse_loss(preds.t(), self.y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step(self.model, self.x, self.y)
+            self.loss.append(loss.item())
+            for param in self.model.parameters():
+                self.w.append([param[0][0].item(), param[0][1].item(),
+                              param[0][2].item(), param[0][3].item()])
+            print(i, loss.item(), self.w[-1])
+        ans = {TRAINLOSS: self.loss, "w": self.w}
+        with open(f"result/sum/{opt}.json", "w") as f:
+            json.dump(ans, f)
         return
 
     def reset_data(self, num=10000):
@@ -539,19 +569,40 @@ class TrackTrainer():
         self.model.train()
         self.model.reset_parameters()
         optimizer = utils.get_opt(opt, self.model)
+        self.tracks.append((self.model.w1.item(),
+                            self.model.w2.item()))
         for _ in range(TRACKEPOCH):
             preds = self.model()
             optimizer.zero_grad()
             preds.backward()
             optimizer.step()
-            self.tracks.append((self.model.w1.cpu().numpy(),
-                               self.model.w2.cpu().numpy()))
-        with open(f"result/track/{opt}", "wb") as f:
-            pickle.dump(self.tracks, f)
+            self.tracks.append((self.model.w1.item(),
+                               self.model.w2.item()))
+        with open(f"result/track/{opt}_{B}.json", "w") as f:
+            json.dump(self.tracks, f)
+        return
+
+    def dsa_train(self, opt=ADAM):
+        self.tracks = []
+        self.model.train()
+        self.model.reset_parameters()
+        optimizer = utils.get_opt(opt, self.model)
+        self.tracks.append((self.model.w1.item(),
+                            self.model.w2.item()))
+        for _ in range(TRACKEPOCH):
+            preds = self.model()
+            optimizer.zero_grad()
+            preds.backward()
+            optimizer.step(self.model, None, None)
+            self.tracks.append((self.model.w1.item(),
+                               self.model.w2.item()))
+        with open(f"result/track/{opt}_{B}.json", "w") as f:
+            json.dump(self.tracks, f)
         return
 
 
 if __name__ == "__main__":
+    # print(F.mse_loss(torch.Tensor([[1], [2], [3]]), torch.Tensor([1, 2, 3])))
     # data = Data()
     # # train_data, test_data, ndim, nclass = data.load_car()
     # train_data, test_data, ndim, nclass = data.load_wine()

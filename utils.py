@@ -1,3 +1,4 @@
+from zmq import device
 from const import *
 import sklearn.preprocessing as sp
 from sklearn.model_selection import train_test_split
@@ -7,7 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import pickle
-from optim import FDecreaseDsa, HypergraDient, DiffSelfAdapt, MomentumDiffSelfAdapt
+from optim import DiffSelfAdaptDagger, DiffSelfAdaptDotplus, FDecreaseDsa, HypergraDient, DiffSelfAdapt, MomentumDiffSelfAdapt
 
 
 class Data():
@@ -138,8 +139,10 @@ class Data():
                 train_index.append(index)
             else:
                 test_index.append(index)
-        train_data = dataset.index_select(0, torch.tensor(train_index).cuda())
-        test_data = dataset.index_select(0, torch.tensor(test_index).cuda())
+        train_data = dataset.index_select(
+            0, torch.tensor(train_index, device=self.device))
+        test_data = dataset.index_select(
+            0, torch.tensor(test_index, device=self.device))
         x_train = train_data[:, :-1]
         y_train = train_data[:, -1]
         x_test = test_data[:, :-1]
@@ -237,30 +240,32 @@ def num_image(loader):
 def get_opt(opt, model, dataset=None):
     if opt == ADAM:
         return torch.optim.Adam(
-            model.parameters())
+            model.parameters(), lr=0.001)
     if opt == DSA:
-        return DiffSelfAdapt(model.parameters(), lr_init=-4.6, meta_lr=0.1)
+        return DiffSelfAdaptDotplus(model.parameters(), lr_init=-4.6, meta_lr=0.3)
+        # return DiffSelfAdaptDagger(model.parameters(), lr_init=-4.6, meta_lr=0.1)
+        # return DiffSelfAdapt(model.parameters(), lr_init=-4.6, meta_lr=0.01)
         # return MomentumDiffSelfAdapt(model.parameters(), lr_init=-6.9, meta_lr=0.1, momentum=0.2)
     if opt == HD:
         if dataset in SMALL:
-            return HypergraDient(model.parameters(), lr_init=0.1, meta_lr=0.01)
-        return HypergraDient(model.parameters())
+            return HypergraDient(model.parameters())
+        return HypergraDient(model.parameters(), lr_init=0.001, meta_lr=1e-4)
     if opt == ADAMW:
-        return torch.optim.AdamW(model.parameters())
+        return torch.optim.AdamW(model.parameters(), lr=0.001)
 
     if opt == ADAMAX:
         return torch.optim.Adamax(model.parameters())
     if opt == ADAGRAD:
-        return torch.optim.Adagrad(model.parameters())
+        return torch.optim.Adagrad(model.parameters(), lr=0.001)
     if opt == ADADELTA:
         return torch.optim.Adadelta(model.parameters())
 
     if opt == SGD:
-        return torch.optim.SGD(model.parameters(), lr=0.1)
+        return torch.optim.SGD(model.parameters(), lr=0.001)
     if opt == RMSPROP:
-        return torch.optim.RMSprop(model.parameters())
+        return torch.optim.RMSprop(model.parameters(), lr=0.001)
     if opt == MOMENTUM:
-        return torch.optim.SGD(model.parameters(), lr=0.1, momentum=P_MOMENTUM, weight_decay=0.0001)
+        return torch.optim.SGD(model.parameters(), lr=0.001, momentum=P_MOMENTUM, weight_decay=0.0001)
     return None
 
 
@@ -275,7 +280,7 @@ def get_res(dataset, opt):
 
 
 def get_scheduler(opt, optimizer):
-    if opt in [SGD, MOMENTUM, ADAM, ADAMAX]:
+    if opt in [SGD, MOMENTUM]:
         return torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                     milestones=[MINIBATCHEPOCHS * 0.5, MINIBATCHEPOCHS * 0.75], gamma=0.1)
     return None
