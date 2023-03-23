@@ -100,38 +100,6 @@ class Trainer():
         return
 
 
-class ADSTrainer(Trainer):
-    def train(self, load=False, save=False, epochs=EPOCHS):
-        if load:
-            self.load_model()
-        opt_accu = -1
-        for i in range(epochs):
-            self.model.train()
-            loss_sum = 0
-            st_time = time()
-            for imgs, label in self.train_loader:
-                if torch.cuda.is_available():
-                    imgs = imgs.cuda(self.device)
-                    label = label.cuda(self.device)
-                preds = self.model(imgs)
-                loss = F.cross_entropy(preds, label)
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
-                self.scheduler.buffer()
-                loss_sum += loss.item() * len(imgs)/self.num_image
-            self.scheduler.step()
-            # eval
-            val_accu, val_loss = self.val()
-            if val_accu > opt_accu:
-                opt_accu = val_accu
-                print(
-                    f"Epoch~{i+1}->train_loss:{round(loss_sum,4)}, val_loss:{round(val_loss, 4)}, val_accu:{round(val_accu, 4)}, time:{round(time()-st_time,4)}")
-            else:
-                print(f"Epoch~{i+1}->time:{round(time()-st_time,4)}")
-        return
-
-
 class HDTrainer(Trainer):
     def train(self, load=False, save=False, epochs=EPOCHS):
         if load:
@@ -152,6 +120,54 @@ class HDTrainer(Trainer):
                 self.optimizer.step()
                 self.scheduler.step()
                 loss_sum += loss.item() * len(imgs)/self.num_image
+            # eval
+            val_accu, val_loss = self.val()
+            if val_accu > opt_accu:
+                opt_accu = val_accu
+                print(
+                    f"Epoch~{i+1}->train_loss:{round(loss_sum,4)}, val_loss:{round(val_loss, 4)}, val_accu:{round(val_accu, 4)}, time:{round(time()-st_time,4)}")
+            else:
+                print(f"Epoch~{i+1}->time:{round(time()-st_time,4)}")
+        return
+
+
+class ADSTrainer(Trainer):
+    def __init__(self, dataset, device="cuda:0") -> None:
+        self.device = device
+        # data
+        self.dataset = dataset
+        self.train_loader, self.test_loader, self.input_channel, self.inputdim, self.nclass = Data().get(dataset)
+        self.num_image = num_image(self.train_loader)
+        # model
+        self.model = ResNet(self.input_channel, self.inputdim, self.nclass)
+        if torch.cuda.is_available():
+            self.model.cuda(self.device)
+        self.save_model_path = f"ckpt/resnet_{self.dataset}"
+        # optimizer and scheduler
+        self.optimizer = None
+        self.scheduler = None
+        pass
+
+    def train(self, load=False, save=False, epochs=EPOCHS):
+        if load:
+            self.load_model()
+        opt_accu = -1
+        for i in range(epochs):
+            self.model.train()
+            loss_sum = 0
+            st_time = time()
+            for imgs, label in self.train_loader:
+                if torch.cuda.is_available():
+                    imgs = imgs.cuda(self.device)
+                    label = label.cuda(self.device)
+                preds = self.model(imgs)
+                loss = F.cross_entropy(preds, label)
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                self.scheduler.buffer()
+                loss_sum += loss.item() * len(imgs)/self.num_image
+            self.scheduler.step()
             # eval
             val_accu, val_loss = self.val()
             if val_accu > opt_accu:

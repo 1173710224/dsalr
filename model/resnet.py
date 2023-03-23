@@ -101,5 +101,11 @@ class ResNet(nn.Module):
         out = self.linear(out)
         return out
 
-    def reset_parameters(self):
-        return
+    def parameters_layerwise(self):
+        param_groups = []
+        for name, param in self.named_parameters():
+            if name.__contains__("bias"):
+                param_groups[-1]["params"].append(param)
+            else:
+                param_groups.append({"params": [param]})
+        return param_groups
