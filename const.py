@@ -1,15 +1,16 @@
+# device
+DEVICE = "cuda:0"
 # datasets
 CIFAR10 = "cifar-10-batches-py"
 CIFAR100 = "cifar-100-python"
-MNIST = "MNIST"
-SVHN = "SVHN"
-CAR = "car"
-WINE = "wine"
+MNIST = "mnist"
+SVHN = "svhn"
 IRIS = "iris"
+WINE = "wine"
+CAR = "car"
 AGARICUS = "agaricus_lepiota"
-DATASETS = [CIFAR10, CIFAR100, MNIST, SVHN, WINE, CAR, IRIS, AGARICUS]
-LARGE = [MNIST, CIFAR10, CIFAR100, SVHN]
-SMALL = [WINE, CAR, IRIS, AGARICUS]
+
+DATASETS = [CIFAR10, CIFAR100, MNIST, SVHN]
 NUMIMAGE = {
     MNIST: 60000,
     SVHN: 73257,
@@ -25,88 +26,75 @@ MNISTSTD = (0.3081,)
 SVHNMEAN = (0.4376821219921112, 0.4437697231769562, 0.4728044271469116)
 SVHNSTD = (0.19803012907505035, 0.2010156363248825, 0.19703614711761475)
 
-# optimizers
-ADAM = "adam"
-DSA = "dsa"
-SGD = "sgd"
-MOMENTUM = "momentum"
-RMSPROP = "rmsprop"
-ADAMAX = "adamax"
-ADAMW = "adamw"
-ADAGRAD = "adagrad"
-ADADELTA = "adadelta"
-HD = "hypergradient"
-OPTIMIZERS = [
-    ADAM, ADAMW, ADAMAX,
-    ADADELTA, ADAGRAD, SGD,
-    RMSPROP, MOMENTUM, HD, DSA]
-OPTIMIZERS2LABEL = {
-    ADAM: "Adam",
-    ADAMW: "AdamW",
-    ADAMAX: "Adamax",
-    ADADELTA: "AdaDelta",
-    ADAGRAD: "AdaGrad",
-    SGD: "SGD",
-    RMSPROP: "RMSPprop",
-    MOMENTUM: "Momentum",
-    DSA: "DSA",
-    HD: "HD"}
-
-# metrics
-ACCU = "accu"
-RECALL = "recall"
-PRECISION = "precision"
-F1SCORE = "f1score"
-TRAINLOSS = "trainloss"
-VALLOSS = "valloss"
-TRACK = "track"
-LOSSOLDLR = "loss_last_lr"
-LOSSNEWLR = "loss_tmp_lr"
-CONFLICT = "conflict"
-INITDICT = {ACCU: [],
-            RECALL: [],
-            PRECISION: [],
-            F1SCORE: [],
-            VALLOSS: [],
-            TRAINLOSS: [],
-            TRACK: [],
-            LOSSOLDLR: [],
-            LOSSNEWLR: [],
-            CONFLICT: [],
-            }
-
-# models
-FMP = "fmp"
-DNN = "dnn"
-MLP = "mlp"
-RESNET = "resnet"
-SUM = "sum"
-
 
 # """hyper-params"""
-A = 1
-B = 1000
-# B = 95
-MINIBATCHEPOCHS = 200
-EPOCHSDENSE = 1000
-EPOCHSTEP1 = 15
-EPOCHSTEP2 = 20
-MAXEPOCHS = 1000
-SUMEPOCH = 1000
-TRACKEPOCH = 1000
-EPSILON = 1e-20
-SUMNUMS = [1000, 10000, 100000]
 P_MOMENTUM = 0.9
 BATCHSIZE = 64
+EPOCHS = 200
+EXPANDTIMES = 20
 NAME2BATCHSIZE = {
     CIFAR10: 128,
     CIFAR100: 32,
     MNIST: 128,
     SVHN: 64,
 }
+# cnn model name
+RESNET = "ResNet"
+MOBILENET = "MobileNetV2"
+# nas model name
+SOFTSTEP = "SoftStep"
 
-# mode
-MINI = "mini"
+# struc config
+SHALLOWSEARCHSPACE = "config/search_space_shallow.json"
+BOTTLENECKSEARCHSPACE = "config/search_space_bottleneck.json"
+LINEARSEARCHSPACE = "config/search_space_linear.json"
+SEARCHSPACE = "config/search_space.json"
+
+# hparams bound for linear search space
+conv_in_channel = "conv_in_channel"
+block_in_conv1_channel = "block_in_conv1_channel"
+block_in_conv2_kernel = "block_in_conv2_kernel"
+block_in_conv3_channel = "block_in_conv3_channel"
+stages_0_block_conv1_channel = "stages_0_block_conv1_channel"
+stages_0_block_conv2_kernel = "stages_0_block_conv2_kernel"
+stages_0_block_conv3_channel = "stages_0_block_conv3_channel"
+stages_0_skips_0_conv1_channel = "stages_0_skips_0_conv1_channel"
+stages_0_skips_0_conv2_kernel = "stages_0_skips_0_conv2_kernel"
+stages_0_skips_1_conv1_channel = "stages_0_skips_1_conv1_channel"
+stages_0_skips_1_conv2_kernel = "stages_0_skips_1_conv2_kernel"
+stages_1_block_conv1_channel = "stages_1_block_conv1_channel"
+stages_1_block_conv2_kernel = "stages_1_block_conv2_kernel"
+stages_1_block_conv3_channel = "stages_1_block_conv3_channel"
+stages_1_skips_0_conv1_channel = "stages_1_skips_0_conv1_channel"
+stages_1_skips_0_conv2_kernel = "stages_1_skips_0_conv2_kernel"
+stages_1_skips_1_conv1_channel = "stages_1_skips_1_conv1_channel"
+stages_1_skips_1_conv2_kernel = "stages_1_skips_1_conv2_kernel"
+stages_2_block_conv1_channel = "stages_2_block_conv1_channel"
+stages_2_block_conv2_kernel = "stages_2_block_conv2_kernel"
+stages_2_block_conv3_channel = "stages_2_block_conv3_channel"
+stages_2_skips_0_conv1_channel = "stages_2_skips_0_conv1_channel"
+stages_2_skips_0_conv2_kernel = "stages_2_skips_0_conv2_kernel"
+stages_2_skips_1_conv1_channel = "stages_2_skips_1_conv1_channel"
+stages_2_skips_1_conv2_kernel = "stages_2_skips_1_conv2_kernel"
+stages_3_block_conv1_channel = "stages_3_block_conv1_channel"
+stages_3_block_conv2_kernel = "stages_3_block_conv2_kernel"
+stages_3_block_conv3_channel = "stages_3_block_conv3_channel"
+stages_3_skips_0_conv1_channel = "stages_3_skips_0_conv1_channel"
+stages_3_skips_0_conv2_kernel = "stages_3_skips_0_conv2_kernel"
+stages_3_skips_1_conv1_channel = "stages_3_skips_1_conv1_channel"
+stages_3_skips_1_conv2_kernel = "stages_3_skips_1_conv2_kernel"
+stages_3_skips_2_conv1_channel = "stages_3_skips_2_conv1_channel"
+stages_3_skips_2_conv2_kernel = "stages_3_skips_2_conv2_kernel"
+stages_4_block_conv1_channel = "stages_4_block_conv1_channel"
+stages_4_block_conv2_kernel = "stages_4_block_conv2_kernel"
+stages_4_block_conv3_channel = "stages_4_block_conv3_channel"
+stages_4_skips_0_conv1_channel = "stages_4_skips_0_conv1_channel"
+stages_4_skips_0_conv2_kernel = "stages_4_skips_0_conv2_kernel"
+stages_4_skips_1_conv1_channel = "stages_4_skips_1_conv1_channel"
+stages_4_skips_1_conv2_kernel = "stages_4_skips_1_conv2_kernel"
+stages_4_skips_2_conv1_channel = "stages_4_skips_2_conv1_channel"
+stages_4_skips_2_conv2_kernel = "stages_4_skips_2_conv2_kernel"
+conv_out_channel = "conv_out_channel"
 
 if __name__ == "__main__":
     pass
