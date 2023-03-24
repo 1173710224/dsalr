@@ -120,6 +120,8 @@ class HDTrainer(Trainer):
                 self.optimizer.step()
                 self.scheduler.step()
                 loss_sum += loss.item() * len(imgs)/self.num_image
+            for group in self.optimizer.param_groups:
+                print(group["lr"])
             # eval
             val_accu, val_loss = self.val()
             if val_accu > opt_accu:
@@ -165,9 +167,11 @@ class ADSTrainer(Trainer):
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-                self.scheduler.buffer()
+                self.scheduler.buffer_step(int(self.num_image/len(imgs)))
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.scheduler.step()
+            for group in self.optimizer.param_groups:
+                print(group["lr"])
             # eval
             val_accu, val_loss = self.val()
             if val_accu > opt_accu:

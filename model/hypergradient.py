@@ -9,12 +9,12 @@ import math
 
 class HyperGradientLR(_LRScheduler):
     def __init__(self, optimizer: Optimizer, meta_lr=1e-4, last_epoch: int = -1, verbose=False) -> None:
-        super(HyperGradientLR, self).__init__(optimizer, last_epoch, verbose)
         self.last_param_grad = []
         for param in optimizer.param_groups[0]["params"]:
             self.last_param_grad.append(torch.zeros(
                 param.size(), device=param.device))
         self.meta_lr = meta_lr
+        super(HyperGradientLR, self).__init__(optimizer, last_epoch, verbose)
         return
 
     def get_lr(self) -> float:
@@ -34,12 +34,12 @@ class HyperGradientLR(_LRScheduler):
 
 class HyperGradientMomentumLR(_LRScheduler):
     def __init__(self, optimizer: torch.optim.SGD, meta_lr=1e-4, last_epoch: int = -1, verbose=False) -> None:
-        super(HyperGradientMomentumLR, self).__init__(optimizer, last_epoch, verbose)
         self.last_momentum_buffer = []
         for param in optimizer.param_groups[0]["params"]:
             self.last_momentum_buffer.append(torch.zeros(
                 param.size(), device=param.device))
         self.meta_lr = meta_lr
+        super(HyperGradientMomentumLR, self).__init__(optimizer, last_epoch, verbose)
         return
 
     def get_lr(self) -> float:
@@ -49,7 +49,7 @@ class HyperGradientMomentumLR(_LRScheduler):
             for i, param in enumerate(group["params"]):
                 if param.grad != None:
                     grad += torch.sum(torch.mul(self.last_momentum_buffer[i], param.grad.data))
-                    self.last_momentum_buffer[i] = self.optimizer.state[i]["momentum_buffer"].data
+                    self.last_momentum_buffer[i] = self.optimizer.state[param]["momentum_buffer"].data
                 else:
                     self.last_momentum_buffer[i] = torch.zeros(
                         param.size(), device=param.device)
@@ -59,21 +59,22 @@ class HyperGradientMomentumLR(_LRScheduler):
 
 class HyperGradientAdamLR(_LRScheduler):
     def __init__(self, optimizer: torch.optim.Adam, meta_lr=1e-4, last_epoch: int = -1, verbose=False) -> None:
-        super(HyperGradientAdamLR, self).__init__(optimizer, last_epoch, verbose)
         self.last_adam_buffer = []
         for param in optimizer.param_groups[0]["params"]:
             self.last_adam_buffer.append(torch.zeros(
                 param.size(), device=param.device))
         self.meta_lr = meta_lr
+        super(HyperGradientAdamLR, self).__init__(optimizer, last_epoch, verbose)
         return
 
     def get_lr(self) -> float:
         lrs = []
         for group in self.optimizer.param_groups:
-            grad = 0
+            lr_grad = 0
             for i, param in enumerate(group["params"]):
                 if param.grad != None:
-                    grad += torch.sum(torch.mul(self.last_adam_buffer[i], param.grad.data))
+                    lr_grad += torch.sum(torch.mul(self.last_adam_buffer[i], param.grad.data))
+                    grad = param.grad.data
                     exp_avg = self.optimizer.state[param]["exp_avg"].data
                     exp_avg_sq = self.optimizer.state[param]["exp_avg_sq"].data
                     step = self.optimizer.state[param]["step"]
@@ -89,9 +90,9 @@ class HyperGradientAdamLR(_LRScheduler):
 
                     numer = exp_avg.mul(beta1).add(grad, alpha=1 - beta1).div(bias_correction1)
                     denom = (exp_avg_sq.mul(beta2).addcmul(grad, grad, value=1 - beta2).sqrt() / math.sqrt(bias_correction2)).add(eps)
-                    self.last_adam_buffer[i] = numer/denom
+                    self.last_adam_buffer[i] = torch.div(numer, denom).data
                 else:
                     self.last_adam_buffer[i] = torch.zeros(
                         param.size(), device=param.device)
-            lrs.append(group['lr']+self.meta_lr*grad)
+            lrs.append(group['lr']+self.meta_lr*lr_grad)
         return list(lrs)
