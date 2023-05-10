@@ -51,12 +51,11 @@ class Trainer():
                 loss_sum += loss.item() * len(imgs)/self.num_image
             # eval
             val_accu, val_loss = self.val()
+            print(f"Epoch~{i+1}->train_loss:{round(loss_sum,4)}, val_loss:{round(val_loss, 4)}, val_accu:{round(val_accu, 4)}, time:{round(time()-st_time,4)}")
             if val_accu > opt_accu:
                 opt_accu = val_accu
-                print(
-                    f"Epoch~{i+1}->train_loss:{round(loss_sum,4)}, val_loss:{round(val_loss, 4)}, val_accu:{round(val_accu, 4)}, time:{round(time()-st_time,4)}")
-            else:
-                print(f"Epoch~{i+1}->time:{round(time()-st_time,4)}")
+            # else:
+            #     print(f"Epoch~{i+1}->time:{round(time()-st_time,4)}")
         return
 
     def val(self):
@@ -171,13 +170,13 @@ class ADSTrainer(Trainer):
                 loss_sum += loss.item() * len(imgs)/self.num_image
             self.scheduler.step()
             for group in self.optimizer.param_groups:
-                print(group["lr"])
+                print(group["lr"].item(), end=",")
+            print("")
             # eval
             val_accu, val_loss = self.val()
             if val_accu > opt_accu:
                 opt_accu = val_accu
-                print(
-                    f"Epoch~{i+1}->train_loss:{round(loss_sum,4)}, val_loss:{round(val_loss, 4)}, val_accu:{round(val_accu, 4)}, time:{round(time()-st_time,4)}")
+                print(f"Epoch~{i+1}->train_loss:{round(loss_sum,4)}, val_loss:{round(val_loss, 4)}, val_accu:{round(val_accu, 4)}, time:{round(time()-st_time,4)}")
             else:
                 print(f"Epoch~{i+1}->time:{round(time()-st_time,4)}")
         return

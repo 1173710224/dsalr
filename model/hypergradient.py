@@ -14,6 +14,8 @@ class HyperGradientLR(_LRScheduler):
             self.last_param_grad.append(torch.zeros(
                 param.size(), device=param.device))
         self.meta_lr = meta_lr
+        self.max_lr = 0.5
+        self.min_lr = 0.000001
         super(HyperGradientLR, self).__init__(optimizer, last_epoch, verbose)
         return
 
@@ -24,11 +26,17 @@ class HyperGradientLR(_LRScheduler):
             for i, param in enumerate(group["params"]):
                 if param.grad != None:
                     grad += torch.sum(torch.mul(self.last_param_grad[i], param.grad.data))
-                    self.last_param_grad[i] = param.grad.data
+                    self.last_param_grad[i] = param.grad.data.clone()
                 else:
                     self.last_param_grad[i] = torch.zeros(
                         param.size(), device=param.device)
-            lrs.append(group['lr']+self.meta_lr*grad)
+            tmp_lr = group['lr']+self.meta_lr*grad
+            if tmp_lr > self.max_lr:
+                lrs.append(self.max_lr)
+            elif tmp_lr < self.min_lr:
+                lrs.append(self.min_lr)
+            else:
+                lrs.append(tmp_lr)
         return list(lrs)
 
 
@@ -39,6 +47,8 @@ class HyperGradientMomentumLR(_LRScheduler):
             self.last_momentum_buffer.append(torch.zeros(
                 param.size(), device=param.device))
         self.meta_lr = meta_lr
+        self.max_lr = 0.5
+        self.min_lr = 0.000001
         super(HyperGradientMomentumLR, self).__init__(optimizer, last_epoch, verbose)
         return
 
@@ -49,21 +59,29 @@ class HyperGradientMomentumLR(_LRScheduler):
             for i, param in enumerate(group["params"]):
                 if param.grad != None:
                     grad += torch.sum(torch.mul(self.last_momentum_buffer[i], param.grad.data))
-                    self.last_momentum_buffer[i] = self.optimizer.state[param]["momentum_buffer"].data
+                    self.last_momentum_buffer[i] = self.optimizer.state[param]["momentum_buffer"].data.clone()
                 else:
                     self.last_momentum_buffer[i] = torch.zeros(
                         param.size(), device=param.device)
-            lrs.append(group['lr']+self.meta_lr*grad)
+            tmp_lr = group['lr']+self.meta_lr*grad
+            if tmp_lr > self.max_lr:
+                lrs.append(self.max_lr)
+            elif tmp_lr < self.min_lr:
+                lrs.append(self.min_lr)
+            else:
+                lrs.append(tmp_lr)
         return list(lrs)
 
 
 class HyperGradientAdamLR(_LRScheduler):
-    def __init__(self, optimizer: torch.optim.Adam, meta_lr=1e-4, last_epoch: int = -1, verbose=False) -> None:
+    def __init__(self, optimizer: torch.optim.Adam, meta_lr=1e-6, last_epoch: int = -1, verbose=False) -> None:
         self.last_adam_buffer = []
         for param in optimizer.param_groups[0]["params"]:
             self.last_adam_buffer.append(torch.zeros(
                 param.size(), device=param.device))
         self.meta_lr = meta_lr
+        self.max_lr = 0.005
+        self.min_lr = 0.000001
         super(HyperGradientAdamLR, self).__init__(optimizer, last_epoch, verbose)
         return
 
@@ -90,9 +108,15 @@ class HyperGradientAdamLR(_LRScheduler):
 
                     numer = exp_avg.mul(beta1).add(grad, alpha=1 - beta1).div(bias_correction1)
                     denom = (exp_avg_sq.mul(beta2).addcmul(grad, grad, value=1 - beta2).sqrt() / math.sqrt(bias_correction2)).add(eps)
-                    self.last_adam_buffer[i] = torch.div(numer, denom).data
+                    self.last_adam_buffer[i] = torch.div(numer, denom).data.clone()
                 else:
                     self.last_adam_buffer[i] = torch.zeros(
                         param.size(), device=param.device)
-            lrs.append(group['lr']+self.meta_lr*lr_grad)
+            tmp_lr = group['lr']+self.meta_lr*lr_grad
+            if tmp_lr > self.max_lr:
+                lrs.append(self.max_lr)
+            elif tmp_lr < self.min_lr:
+                lrs.append(self.min_lr)
+            else:
+                lrs.append(tmp_lr)
         return list(lrs)
